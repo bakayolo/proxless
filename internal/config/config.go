@@ -10,11 +10,14 @@ import (
 )
 
 var (
-	KubeConfigPath string
-	LogLevel       string
-	Port           string
-	MaxConsPerHost int
-	Namespace      string
+	KubeConfigPath        string
+	LogLevel              string
+	Port                  string
+	MaxConsPerHost        int
+	Namespace             string
+	ServerlessTTL         int
+	ReadinessPollTimeout  string
+	ReadinessPollInterval string
 )
 
 func LoadConfig() {
@@ -26,6 +29,10 @@ func LoadConfig() {
 	MaxConsPerHost = parseInt("MAX_CONS_PER_HOST", "10000")
 
 	Namespace = os.Getenv("NAMESPACE")
+
+	ServerlessTTL = parseInt("SERVERVLESS_TTL", "30")
+	ReadinessPollTimeout = parseString("READINESS_POLL_TIMEOUT", "30")
+	ReadinessPollInterval = parseString("READINESS_POLL_INTERVAL", "1")
 }
 
 func parseString(key, defaultValue string) string {

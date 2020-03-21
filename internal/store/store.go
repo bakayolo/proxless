@@ -31,9 +31,27 @@ func DeleteRoute(keys ...string) {
 	}
 }
 
-func GetRoute(key string) string {
+func GetRouteOrigin(key string) string {
 	if r, ok := routesMap[key]; ok {
 		return fmt.Sprintf("%s:%s", r.service, r.port)
+	}
+
+	log.Error().Msgf("Service %s not found in routes map", key)
+	return ""
+}
+
+func GetRouteLabel(key string) string {
+	if r, ok := routesMap[key]; ok {
+		return r.label
+	}
+
+	log.Error().Msgf("Service %s not found in routes map", key)
+	return ""
+}
+
+func GetRouteNamespace(key string) string {
+	if r, ok := routesMap[key]; ok {
+		return r.namespace
 	}
 
 	log.Error().Msgf("Service %s not found in routes map", key)
