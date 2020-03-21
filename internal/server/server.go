@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"github.com/rs/zerolog/log"
 	"github.com/valyala/fasthttp"
-	"kube-proxless/internal/commons"
 	"kube-proxless/internal/config"
+	"kube-proxless/internal/store"
 	"net/url"
 )
 
@@ -55,5 +55,6 @@ func parseHost(ctx *fasthttp.RequestCtx) string {
 		log.Error().Err(err).Msgf("Error parsing URL %s", ctx.Host())
 		return ""
 	}
-	return commons.GetRoute(u.Scheme)
+	//TODO why do I need to use `u.Scheme` instead of `u.Host`?
+	return store.GetRoute(u.Scheme)
 }

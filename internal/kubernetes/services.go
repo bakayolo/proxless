@@ -1,33 +1,31 @@
 package kubernetes
 
 import (
-	"flag"
 	"fmt"
 	"github.com/rs/zerolog/log"
 	core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/informers"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/client-go/tools/clientcmd"
-	"kube-proxless/internal/commons"
 	"kube-proxless/internal/config"
+	"kube-proxless/internal/store"
 	"time"
 )
 
 var (
-	annotationKey = "proxless/domain-name"
+	annotationDomainNameKey = "proxless/domain-name"
+	annotationSvcNameKey    = "proxless/service-name"
+	annotationSvcPortKey    = "proxless/service-port"
+
+	labelSvc = "proxless"
 )
 
 func StartServiceInformer() {
-	kubeClient := getKubeClient()
-
 	opts := make([]informers.SharedInformerOption, 0)
 	if config.Namespace != "" {
 		opts = append(opts, informers.WithNamespace(config.Namespace))
 	}
-	infFactory := informers.NewSharedInformerFactoryWithOptions(kubeClient, 30*time.Second, opts...)
+	infFactory := informers.NewSharedInformerFactoryWithOptions(clientSet, 30*time.Second, opts...)
 
 	serviceInformer := infFactory.Core().V1().Services().Informer()
 	eventHandler := cache.ResourceEventHandlerFuncs{
@@ -58,32 +56,16 @@ func updateRoutingMapObjects(obj interface{}, toDelete bool) {
 		return
 	}
 
-	if metav1.HasAnnotation(svc.ObjectMeta, annotationKey) {
-		internalDomainName := fmt.Sprintf("%s.%s", svc.Name, svc.Namespace)
+	if metav1.HasAnnotation(svc.ObjectMeta, annotationDomainNameKey) &&
+		metav1.HasAnnotation(svc.ObjectMeta, annotationSvcNameKey) {
+		internalDomainName := fmt.Sprintf("%s.%s", svc.Annotations[annotationSvcNameKey], svc.Namespace)
 		if toDelete {
-			commons.DeleteRoute(internalDomainName, svc.Annotations[annotationKey])
+			store.DeleteRoute(internalDomainName, svc.Annotations[annotationDomainNameKey])
 			log.Debug().Msgf("Service %s deleted", internalDomainName)
 		} else {
-			commons.UpdateRoute(internalDomainName, internalDomainName)
-			commons.UpdateRoute(svc.Annotations[annotationKey], internalDomainName)
+			store.UpdateRoute(internalDomainName, internalDomainName, svc.Annotations[annotationSvcPortKey], svc.Labels[labelSvc], svc.Namespace)
+			store.UpdateRoute(svc.Annotations[annotationDomainNameKey], internalDomainName, svc.Annotations[annotationSvcPortKey], svc.Labels[labelSvc], svc.Namespace)
 			log.Debug().Msgf("Service %s updated", internalDomainName)
 		}
 	}
-}
-
-func getKubeClient() *kubernetes.Clientset {
-	kubeConf := loadKubeConfig(config.KubeConfigPath)
-	return kubernetes.NewForConfigOrDie(kubeConf)
-}
-
-func loadKubeConfig(kubeConfigPath string) *rest.Config {
-	kubeConfigString := flag.String("kubeconfig", kubeConfigPath, "(optional) absolute path to the kubeconfig file")
-
-	// use the current context in kubeconfig
-	kubeConfig, err := clientcmd.BuildConfigFromFlags("", *kubeConfigString)
-	if err != nil {
-		log.Panic().Err(err).Msgf("Could not find kubeconfig file at %s", kubeConfigPath)
-	}
-
-	return kubeConfig
 }
