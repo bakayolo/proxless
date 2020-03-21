@@ -2,10 +2,12 @@ package server
 
 import (
 	"fmt"
+	"github.com/rs/zerolog/log"
 	"github.com/valyala/fasthttp"
+	"kube-proxless/internal/commons"
 	"kube-proxless/internal/config"
+	"net/url"
 )
-import "github.com/rs/zerolog/log"
 
 var httpClient = fasthttp.Client{
 	MaxConnsPerHost: config.MaxConsPerHost,
@@ -13,7 +15,7 @@ var httpClient = fasthttp.Client{
 
 func StartServer() {
 	addr := fmt.Sprintf(":%s", config.Port)
-	log.Printf("Proxless listening to %s", addr)
+	log.Info().Msgf("Proxless listening to %s", addr)
 
 	server := fasthttp.Server{
 		Name:    "proxless",
@@ -28,14 +30,30 @@ func requestHandler(ctx *fasthttp.RequestCtx) {
 
 	req.Header = ctx.Request.Header
 	req.SetBody(ctx.Request.Body())
-	req.SetRequestURI("https://www.google.com")
 
-	if err := httpClient.Do(req, res); err != nil {
-		log.Err(err).Msg("Error forwarding the request")
+	host := parseHost(ctx)
+	if host == "" {
+		ctx.Response.SetStatusCode(404)
+		ctx.Response.SetBodyString(fmt.Sprintf("Domain %s not found", ctx.Host()))
 	} else {
-		log.Debug().Msg("Request forwarded")
+		req.SetHost(host)
 
-		ctx.Response.SetBodyString(string(res.Body()))
-		ctx.Response.Header = res.Header
+		if err := httpClient.Do(req, res); err != nil {
+			log.Error().Err(err).Msg("Error forwarding the request")
+		} else {
+			log.Debug().Msg("Request forwarded")
+
+			ctx.Response.SetBodyString(string(res.Body()))
+			ctx.Response.Header = res.Header
+		}
 	}
+}
+
+func parseHost(ctx *fasthttp.RequestCtx) string {
+	u, err := url.Parse(string(ctx.Host()))
+	if err != nil {
+		log.Error().Err(err).Msgf("Error parsing URL %s", ctx.Host())
+		return ""
+	}
+	return commons.GetRoute(u.Scheme)
 }

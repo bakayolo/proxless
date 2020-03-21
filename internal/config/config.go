@@ -10,16 +10,22 @@ import (
 )
 
 var (
+	KubeConfigPath string
 	LogLevel       string
 	Port           string
 	MaxConsPerHost int
+	Namespace      string
 )
 
 func LoadConfig() {
+	KubeConfigPath = os.Getenv("KUBE_CONFIG_PATH")
+
 	LogLevel = parseString("LOG_LEVEL", "DEBUG")
 
 	Port = parseString("PORT", "80")
 	MaxConsPerHost = parseInt("MAX_CONS_PER_HOST", "10000")
+
+	Namespace = os.Getenv("NAMESPACE")
 }
 
 func parseString(key, defaultValue string) string {
