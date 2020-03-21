@@ -1,49 +1,59 @@
 package store
 
 import (
-	"errors"
+	"fmt"
 	"github.com/rs/zerolog/log"
-	"sync"
 )
 
-type Route struct {
-	Service   string
-	Port      string
-	Label     string
-	Namespace string
+type route struct {
+	service   string
+	port      string
+	label     string
+	namespace string
 }
 
 var (
-	routesMap = make(map[string]Route)
-	lock      = sync.RWMutex{}
+	routesMap = make(map[string]route)
 )
 
 func UpdateRoute(key, service, port, label, namespace string) {
-	lock.Lock()
-	defer lock.Unlock()
-	routesMap[key] = Route{
-		Service:   service,
-		Port:      port,
-		Label:     label,
-		Namespace: namespace,
+	routesMap[key] = route{
+		service:   service,
+		port:      port,
+		label:     label,
+		namespace: namespace,
 	}
 }
 
 func DeleteRoute(keys ...string) {
-	lock.Lock()
-	defer lock.Unlock()
 	for _, key := range keys {
 		delete(routesMap, key)
 	}
 }
 
-func GetRoute(key string) (Route, error) {
-	lock.RLock()
-	defer lock.RUnlock()
+func GetRouteOrigin(key string) string {
 	if r, ok := routesMap[key]; ok {
-		return r, nil
+		return fmt.Sprintf("%s:%s", r.service, r.port)
 	}
 
 	log.Error().Msgf("Service %s not found in routes map", key)
-	return Route{}, errors.New("Service not found in routes map")
+	return ""
+}
+
+func GetRouteLabel(key string) string {
+	if r, ok := routesMap[key]; ok {
+		return r.label
+	}
+
+	log.Error().Msgf("Service %s not found in routes map", key)
+	return ""
+}
+
+func GetRouteNamespace(key string) string {
+	if r, ok := routesMap[key]; ok {
+		return r.namespace
+	}
+
+	log.Error().Msgf("Service %s not found in routes map", key)
+	return ""
 }

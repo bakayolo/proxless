@@ -30,9 +30,9 @@ func LoadConfig() {
 
 	Namespace = os.Getenv("NAMESPACE")
 
-	ServerlessTTL = parseInt("SERVERLESS_TTL_SECONDS", "30")
-	ReadinessPollTimeout = parseString("READINESS_POLL_TIMEOUT_SECONDS", "30")
-	ReadinessPollInterval = parseString("READINESS_POLL_INTERVAL_SECONDS", "1")
+	ServerlessTTL = parseInt("SERVERVLESS_TTL", "30")
+	ReadinessPollTimeout = parseString("READINESS_POLL_TIMEOUT", "30")
+	ReadinessPollInterval = parseString("READINESS_POLL_INTERVAL", "1")
 }
 
 func parseString(key, defaultValue string) string {

@@ -35,40 +35,39 @@ func requestHandler(ctx *fasthttp.RequestCtx) {
 	req.SetBody(ctx.Request.Body())
 
 	host := parseHost(ctx)
-	route, err := store.GetRoute(host)
-	if err != nil {
+	if host == "" {
 		ctx.Response.SetStatusCode(404)
 		ctx.Response.SetBodyString(fmt.Sprintf("Domain %s not found", ctx.Host()))
 	} else { // the route exists so we should have a deployment attached to the service
-		origin := fmt.Sprintf("%s:%s", route.Service, route.Port)
+		origin := store.GetRouteOrigin(host)
 		req.SetHost(origin)
 
 		// First try
 		if err := httpClient.Do(req, res); err != nil {
 			log.Debug().Msg("Error forwarding the request - Scaling up the deployment")
 			// Maybe the deployment is scaled down, let's scale it up
-			if err := kubernetes.ScaleUp(route.Label, route.Namespace); err != nil {
-				forwardError(ctx, err)
+			if err := kubernetes.ScaleUp(store.GetRouteLabel(host), store.GetRouteNamespace(host)); err != nil {
+				errorForwarded(ctx, err)
 			} else { // Second try with the deployment scaled up
 				if err := httpClient.Do(req, res); err != nil {
-					forwardError(ctx, err)
+					errorForwarded(ctx, err)
 				} else {
-					forwardRequest(ctx, res)
+					requestForwarded(ctx, res)
 				}
 			}
 		} else {
-			forwardRequest(ctx, res)
+			requestForwarded(ctx, res)
 		}
 	}
 }
 
-func forwardRequest(ctx *fasthttp.RequestCtx, res *fasthttp.Response) {
+func requestForwarded(ctx *fasthttp.RequestCtx, res *fasthttp.Response) {
 	log.Debug().Msg("Request forwarded")
 	ctx.Response.SetBodyString(string(res.Body()))
 	ctx.Response.Header = res.Header
 }
 
-func forwardError(ctx *fasthttp.RequestCtx, err error) {
+func errorForwarded(ctx *fasthttp.RequestCtx, err error) {
 	log.Error().Err(err).Msg("Error forwarding the request")
 	ctx.Response.SetBodyString("Error in the server")
 	ctx.Response.SetStatusCode(500)
