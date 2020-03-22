@@ -1,27 +1,27 @@
 package store
 
 import (
-	"fmt"
+	"errors"
 	"github.com/rs/zerolog/log"
 )
 
-type route struct {
-	service   string
-	port      string
-	label     string
-	namespace string
+type Route struct {
+	Service   string
+	Port      string
+	Label     string
+	Namespace string
 }
 
 var (
-	routesMap = make(map[string]route)
+	routesMap = make(map[string]Route)
 )
 
 func UpdateRoute(key, service, port, label, namespace string) {
-	routesMap[key] = route{
-		service:   service,
-		port:      port,
-		label:     label,
-		namespace: namespace,
+	routesMap[key] = Route{
+		Service:   service,
+		Port:      port,
+		Label:     label,
+		Namespace: namespace,
 	}
 }
 
@@ -31,11 +31,11 @@ func DeleteRoute(keys ...string) {
 	}
 }
 
-func GetRoute(key string) string {
+func GetRoute(key string) (Route, error) {
 	if r, ok := routesMap[key]; ok {
-		return fmt.Sprintf("%s:%s", r.service, r.port)
+		return r, nil
 	}
 
 	log.Error().Msgf("Service %s not found in routes map", key)
-	return ""
+	return Route{}, errors.New("Service not found in routes map")
 }
