@@ -1,13 +1,6 @@
 package store
 
-<<<<<<< HEAD
-import (
-	"errors"
-	"github.com/rs/zerolog/log"
-)
-=======
 import "time"
->>>>>>> 🚧 Autoscale the deployment after N seconds
 
 func UpdateStore(identifier, service, port, label, namespace string, domains []string) {
 	if route, err := getRoute(identifier); err != nil { // new route
@@ -32,30 +25,6 @@ func UpdateStore(identifier, service, port, label, namespace string, domains []s
 	updateMapping(label, identifier)
 }
 
-<<<<<<< HEAD
-var (
-	routesMap = make(map[string]Route)
-)
-
-func UpdateRoute(key, service, port, label, namespace string) {
-	routesMap[key] = Route{
-		Service:   service,
-		Port:      port,
-		Label:     label,
-		Namespace: namespace,
-	}
-}
-
-func DeleteRoute(keys ...string) {
-	for _, key := range keys {
-		delete(routesMap, key)
-	}
-}
-
-func GetRoute(key string) (Route, error) {
-	if r, ok := routesMap[key]; ok {
-		return r, nil
-=======
 func DeleteObjectInStore(identifier string) {
 	deleteRoute(identifier)
 	deleteMappingByValue(identifier)
@@ -74,7 +43,6 @@ func getRouteByMapping(key string) (Route, error) {
 		return Route{}, err
 	} else {
 		return getRoute(identifier)
->>>>>>> 🚧 Autoscale the deployment after N seconds
 	}
 }
 
