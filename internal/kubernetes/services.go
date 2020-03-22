@@ -9,15 +9,8 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"kube-proxless/internal/config"
 	"kube-proxless/internal/store"
+	"strings"
 	"time"
-)
-
-var (
-	annotationDomainNameKey = "proxless/domain-name"
-	annotationSvcNameKey    = "proxless/service-name"
-	annotationSvcPortKey    = "proxless/service-port"
-
-	labelSvc = "proxless"
 )
 
 func StartServiceInformer() {
@@ -46,6 +39,7 @@ func StartServiceInformer() {
 
 	log.Info().Msgf("Starting Services Informer")
 	stopCh := make(chan struct{})
+	defer close(stopCh)
 	serviceInformer.Run(stopCh)
 }
 
@@ -56,15 +50,23 @@ func updateRoutingMapObjects(obj interface{}, toDelete bool) {
 		return
 	}
 
-	if metav1.HasAnnotation(svc.ObjectMeta, annotationDomainNameKey) &&
-		metav1.HasAnnotation(svc.ObjectMeta, annotationSvcNameKey) {
-		internalDomainName := fmt.Sprintf("%s.%s", svc.Annotations[annotationSvcNameKey], svc.Namespace)
+	if metav1.HasAnnotation(svc.ObjectMeta, config.AnnotationDomainNameKey) &&
+		metav1.HasAnnotation(svc.ObjectMeta, config.AnnotationSvcNameKey) {
+		identifier := string(svc.UID)
+		internalDomainName := fmt.Sprintf("%s.%s", svc.Annotations[config.AnnotationSvcNameKey], svc.Namespace)
 		if toDelete {
-			store.DeleteRoute(internalDomainName, svc.Annotations[annotationDomainNameKey])
+			store.DeleteObjectInStore(identifier)
 			log.Debug().Msgf("Service %s deleted", internalDomainName)
 		} else {
-			store.UpdateRoute(internalDomainName, internalDomainName, svc.Annotations[annotationSvcPortKey], svc.Labels[labelSvc], svc.Namespace)
-			store.UpdateRoute(svc.Annotations[annotationDomainNameKey], internalDomainName, svc.Annotations[annotationSvcPortKey], svc.Labels[labelSvc], svc.Namespace)
+			port := "80"
+			if svc.Annotations[config.AnnotationSvcPortKey] != "" {
+				port = svc.Annotations[config.AnnotationSvcPortKey]
+			}
+			label := svc.Labels[config.LabelProxlessSvc]
+			domains := strings.Split(svc.Annotations[config.AnnotationDomainNameKey], ",")
+			domains = append(domains, internalDomainName)                                      // add fqdn
+			domains = append(domains, fmt.Sprintf("%s.svc.cluster.local", internalDomainName)) // add fqdn
+			store.UpdateStore(identifier, internalDomainName, port, label, svc.Namespace, domains)
 			log.Debug().Msgf("Service %s updated", internalDomainName)
 		}
 	}

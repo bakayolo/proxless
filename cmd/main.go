@@ -13,6 +13,7 @@ func main() {
 
 	kubernetes.LoadKubeClient()
 	go kubernetes.StartServiceInformer()
+	go kubernetes.ScalingEngine()
 
 	server.StartServer()
 }

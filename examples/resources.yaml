@@ -3,16 +3,18 @@ kind: Deployment
 metadata:
   name: example
   labels:
-    proxless: example
+    app: example
+    proxless-service: example
+    proxless-enabled: "true"
 spec:
   replicas: 1
   selector:
     matchLabels:
-      proxless: example
+      proxless-service: example
   template:
     metadata:
       labels:
-        proxless: example
+        proxless-service: example
     spec:
       containers:
         - name: nginx
@@ -26,7 +28,7 @@ metadata:
   name: example
 spec:
   selector:
-    proxless: example
+    app: example
   ports:
     - protocol: TCP
       port: 80
@@ -36,12 +38,12 @@ apiVersion: v1
 kind: Service
 metadata:
   annotations:
-    proxless/domain-name: "www.example.io"
+    proxless/domain-name: "www.example.io,example.io"
     proxless/service-name: "example"
     proxless/service-port: "80"
   name: example-proxless
   labels:
-    proxless: example
+    proxless-service: example
 spec:
   ports:
   - port: 80
