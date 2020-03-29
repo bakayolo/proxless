@@ -4,6 +4,8 @@ import (
 	"github.com/rs/zerolog/log"
 	"kube-proxless/internal/config"
 	"kube-proxless/internal/kubernetes"
+	"kube-proxless/internal/kubernetes/downscaler"
+	"kube-proxless/internal/kubernetes/servicesfactory"
 	"kube-proxless/internal/server"
 )
 
@@ -12,8 +14,8 @@ func main() {
 	log.Info().Msgf("Log Level is %s", config.InitLogger())
 
 	kubernetes.LoadKubeClient()
-	go kubernetes.StartServiceInformer()
-	go kubernetes.ScalingEngine()
+	go servicesfactory.StartServiceInformer(config.Namespace)
+	go downscaler.StartDownScaler()
 
 	server.StartServer()
 }

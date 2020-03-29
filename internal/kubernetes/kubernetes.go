@@ -10,12 +10,12 @@ import (
 )
 
 var (
-	clientSet *kubernetes.Clientset
+	ClientSet *kubernetes.Clientset
 )
 
 func LoadKubeClient() {
 	kubeConf := loadKubeConfig(config.KubeConfigPath)
-	clientSet = kubernetes.NewForConfigOrDie(kubeConf)
+	ClientSet = kubernetes.NewForConfigOrDie(kubeConf)
 }
 
 func loadKubeConfig(kubeConfigPath string) *rest.Config {

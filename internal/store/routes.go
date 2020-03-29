@@ -2,17 +2,18 @@ package store
 
 import (
 	"errors"
-	"github.com/rs/zerolog/log"
+	"fmt"
 	"sync"
 	"time"
 )
 
 type Route struct {
-	Service   string
-	Port      string
-	Label     string
-	Namespace string
-	LastUsed  time.Time // TODO Need to store that in Kubernetes. This is not scalable!
+	Service    string
+	Port       string
+	Deployment string
+	Namespace  string
+	Domains    []string
+	LastUsed   time.Time // TODO Need to store that in Kubernetes. This is not scalable!
 }
 
 type routesMapType struct {
@@ -47,13 +48,12 @@ func deleteRoute(key string) {
 	delete(routesMap.rmap, key)
 }
 
-func getRoute(key string) (Route, error) {
+func getRoute(key string) (*Route, error) {
 	routesMap.lock.RLock()
 	defer routesMap.lock.RUnlock()
 	if r, ok := routesMap.rmap[key]; ok {
-		return r, nil
+		return &r, nil
 	}
 
-	log.Error().Msgf("Service %s not found in routes map", key)
-	return Route{}, errors.New("Service not found in routes map")
+	return nil, errors.New(fmt.Sprintf("Service %s not found in routes map", key))
 }

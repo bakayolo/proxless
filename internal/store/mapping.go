@@ -2,7 +2,7 @@ package store
 
 import (
 	"errors"
-	"github.com/rs/zerolog/log"
+	"fmt"
 	"sync"
 )
 
@@ -37,13 +37,18 @@ func deleteMappingByValue(value string) {
 	}
 }
 
-func getMapping(key string) (string, error) {
+func deleteMappingByKey(key string) {
+	mappingMap.lock.Lock()
+	defer mappingMap.lock.Unlock()
+	delete(mappingMap.mmap, key)
+}
+
+func getMappingValueByKey(key string) (string, error) {
 	mappingMap.lock.RLock()
 	defer mappingMap.lock.RUnlock()
 	if v, ok := mappingMap.mmap[key]; ok {
 		return v, nil
 	}
 
-	log.Error().Msgf("Mapping %s not found in map", key)
-	return "", errors.New("Mapping not found in map")
+	return "", errors.New(fmt.Sprintf("Mapping %s not found in map", key))
 }

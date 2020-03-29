@@ -2,19 +2,15 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: example
-  labels:
-    app: example
-    proxless-service: example
-    proxless-enabled: "true"
 spec:
   replicas: 1
   selector:
     matchLabels:
-      proxless-service: example
+      app: example
   template:
     metadata:
       labels:
-        proxless-service: example
+        app: example
     spec:
       containers:
         - name: nginx
@@ -26,6 +22,9 @@ apiVersion: v1
 kind: Service
 metadata:
   name: example
+  annotations:
+    proxless/domain: "www.example.io,example.io" ## domains names proxless will be able to proxy
+    proxless/deployment: "example"               ## name of the deployment proxless will scale up and down
 spec:
   selector:
     app: example
@@ -33,18 +32,3 @@ spec:
     - protocol: TCP
       port: 80
       targetPort: 80
----
-apiVersion: v1
-kind: Service
-metadata:
-  annotations:
-    proxless/domain-name: "www.example.io,example.io"
-    proxless/service-name: "example"
-    proxless/service-port: "80"
-  name: example-proxless
-  labels:
-    proxless-service: example
-spec:
-  ports:
-  - port: 80
-  type: ClusterIP
