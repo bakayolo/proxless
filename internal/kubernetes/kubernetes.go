@@ -13,7 +13,7 @@ var (
 	ClientSet *kubernetes.Clientset
 )
 
-func LoadKubeClient() {
+func InitKubeClient() {
 	kubeConf := loadKubeConfig(config.KubeConfigPath)
 	ClientSet = kubernetes.NewForConfigOrDie(kubeConf)
 }
