@@ -22,7 +22,7 @@ func StartDownScaler() {
 		deploys, err := clientDeployment.List(labelSelector)
 		if err != nil {
 			log.Error().Err(err).Msgf(
-				"Could not list deployments with label %s=true in namespace %s",
+				"Could not list deployments with label %s in namespace %s",
 				labelSelector.LabelSelector, config.Namespace)
 			// don't do anything else, we don't wanna kill the proxy
 		} else {

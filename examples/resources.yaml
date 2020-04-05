@@ -23,8 +23,8 @@ kind: Service
 metadata:
   name: example
   annotations:
-    proxless/domain: "www.example.io,example.io" ## domains names proxless will be able to proxy
-    proxless/deployment: "example"               ## name of the deployment proxless will scale up and down
+    proxless/domains: "proxless-example.kintohub.net" ## domains names proxless will be able to proxy
+    proxless/deployment: "example" ## name of the deployment proxless will scale up and down
 spec:
   selector:
     app: example
