@@ -14,23 +14,6 @@ A helm chart will be available soon.
 
 Duplicate the `.env.example` file into a `.env` file and modify the variables accordingly
 
-```shell script
-KUBE_CONFIG_PATH= ## Path your your `kube.config` file
-LOG_LEVEL=DEBUG
-PORT=8080
-MAX_CONS_PER_HOST=10000 ## Max number of concurrent connections that can be forwarded to the origin servers
-
-NAMESPACE= ## Kubernetes namespace
-## If specified, proxless will watch one namespace. A Kubernetes Role is needed.
-## If empty, proxless will watch all the namespaces. A Kubernetes ClusterRole is needed.
-
-SERVERLESS_TTL_SECONDS=10 ## Time to leave in seconds for your serverless deployments
-
-## When Proxless is scaling up a deployment
-READINESS_POLL_TIMEOUT_SECONDS=30 ## Proxless wait this time before timing out
-READINESS_POLL_INTERVAL_SECONDS=1 ## Proxless check interval
-```
-
 Then run
 
 ```shell script
