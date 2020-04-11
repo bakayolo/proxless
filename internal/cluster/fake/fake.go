@@ -4,6 +4,7 @@ import (
 	"errors"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"kube-proxless/internal/logger"
+	"time"
 )
 
 const (
@@ -31,8 +32,8 @@ func (*fakeCluster) ScaleUpDeployment(name, namespace string, timeout int) error
 }
 
 func (*fakeCluster) ScaleDownDeployments(
-	namespace string, mustScaleDown func(deployName, namespace string) (bool, error)) []error {
-	_, err := mustScaleDown(deployName, namespaceName)
+	namespaceScope string, mustScaleDown func(deployName, namespace string) (bool, time.Duration, error)) []error {
+	_, _, err := mustScaleDown(deployName, namespaceName)
 
 	if err != nil {
 		return append([]error{}, err)
@@ -42,11 +43,11 @@ func (*fakeCluster) ScaleDownDeployments(
 }
 
 func (*fakeCluster) RunServicesEngine(
-	namespace string,
+	namespaceScope, proxlessService, proxlessNamespace string,
 	upsertStore func(id, name, port, deployName, namespace string, domains []string) error,
 	deleteRouteFromStore func(id string) error,
 ) {
-	if namespace == "upsert" { // TODO this is too hacky, see how others are doing
+	if namespaceScope == "upsert" { // TODO this is too hacky, see how others are doing
 		err := upsertStore(
 			serviceId, serviceName, "", deployName, namespaceName, domains)
 

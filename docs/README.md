@@ -5,30 +5,6 @@
 - `service` == `kubernetes service`
 - `deployment` == `kubernetes deployment`
 
-## In 1 minute
-
-The main idea when building proxless is to be as simple as possible.  
-You don't wanna install a Custom Resource Definition, you don't want to have a big stack, you just want something to scale up and down your deployment based on-demand.  
-Proxless is a simple proxy written in golang and does not consume much resources. You don't need anything else.
-
-You just need to add an annotation on the services you want to make on-demand and Proxless will handle the rest.
-
-Start now and deploy the [helm chart](../helm/README.md).  
-
-### Examples
-
-Check the [example](../examples). Replace `hello-world.proxless.kintohub.net` with your own domain for testing.  
-_Notes: don't forget to configure your DNS_
-
-## Namespace scoped or cluster wide
- 
-- **Namespace scoped**
-    - env var `NAMESPACE` must not be empty - proxless will only look for services within this namespace.
-    - a `Role` is required.  See [here](../helm/templates/role.yaml).
-- **Cluster wide**
-    - env var `NAMESPACE` is empty - proxless will look for any services in the cluster.
-    - a `ClusterRole` is required. See [here](../helm/templates/clusterrole.yaml).
-
 ## Core Concepts
 
 Proxless works with 4 core concepts:
@@ -75,21 +51,22 @@ It is responsible for looking at all the services, add them in the store and con
 
 Upon creating/modifying a service, the services engine will
 
-- check if the service contains the correct annotations
+- check if the service contains the required annotation
+    - `proxless/deployment`
+        - deployment name used for scaling up and down the app
+        - example: `hello`
+- check if the service contains additional annotation for domains
     - `proxless/domains`
         - external domain names associated to the service (separated with `,`)
         - example: `proxless/domains=example.io,www.example.io` 
-    - `proxless/deployment`
-        - deployment name used for scaling up and down the app
-        - example: `hello-world`
-    - (check the [example](../examples))
 - if the service is compatible
     - it will add all the information into the store (see the [store section](#the-store))
     - it will add the label `proxless=true` to the deployment (for the [downscaler](#the-downscaler))
         - if the deployment does not exist, it will still add the information to the store so that the forwarding still works
         - it resyncs all the services every 30 seconds so the deployment can be picked up later
+    - it will create new service `[SERVICE]-proxless` that you can use to access your service internally through proxless.
 
-Upon deleting a service, the service engine will delete all its route information from the store and remove the proxless label from its deployment.
+Upon deleting a service, the service engine will delete all its route information from the store, remove the proxless label from its deployment and remove the proxless service.
 
 The logic of the services engine is available in [internal/cluster/kube/servicesinformer.go](../internal/cluster/kube/servicesinformer.go).
 

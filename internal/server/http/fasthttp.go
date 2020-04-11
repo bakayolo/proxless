@@ -1,8 +1,8 @@
 package http
 
 import (
-	"github.com/rs/zerolog/log"
 	"github.com/valyala/fasthttp"
+	"kube-proxless/internal/logger"
 )
 
 type fastHTTP struct {
@@ -27,7 +27,7 @@ func (*fastHTTP) listenAndServe(host string, requestHandler func(ctx *fasthttp.R
 		Name:    "proxless-http",
 		Handler: requestHandler,
 	}
-	log.Fatal().Err(server.ListenAndServe(host))
+	logger.Fatalf(server.ListenAndServe(host), "Error starting the server")
 }
 
 func (f *fastHTTP) do(req *fasthttp.Request, resp *fasthttp.Response) error {

@@ -10,22 +10,60 @@ import (
 func Test_genDomains(t *testing.T) {
 	testCases := []struct {
 		domains, svcName, namespace string
+		namespaceScoped             bool
 		want                        []string
 	}{
-		{"example.io", "svc", "ns",
-			[]string{"example.io", "svc.ns", "svc.ns.svc.kubeCluster.local"},
+		{
+			domains:         "example.io",
+			svcName:         "dummySvcName",
+			namespace:       "dummyNsName",
+			namespaceScoped: false,
+			want: []string{
+				"example.io",
+				"dummySvcName.dummyNsName",
+				"dummySvcName-proxless.dummyNsName",
+				"dummySvcName.dummyNsName.svc.cluster.local",
+				"dummySvcName-proxless.dummyNsName.svc.cluster.local",
+			},
 		},
-		{"example.io,example.com", "svc", "ns",
-			[]string{"example.io", "example.com", "svc.ns", "svc.ns.svc.kubeCluster.local"},
+		{
+			domains:         "example.io",
+			svcName:         "dummySvcName",
+			namespace:       "dummyNsName",
+			namespaceScoped: true,
+			want: []string{
+				"example.io",
+				"dummySvcName",
+				"dummySvcName-proxless",
+				"dummySvcName.dummyNsName",
+				"dummySvcName-proxless.dummyNsName",
+				"dummySvcName.dummyNsName.svc.cluster.local",
+				"dummySvcName-proxless.dummyNsName.svc.cluster.local",
+			},
+		},
+		{
+
+			domains:         "example.io,example.com",
+			svcName:         "dummySvcName",
+			namespace:       "dummyNsName",
+			namespaceScoped: false,
+			want: []string{
+				"example.io",
+				"example.com",
+				"dummySvcName.dummyNsName",
+				"dummySvcName-proxless.dummyNsName",
+				"dummySvcName.dummyNsName.svc.cluster.local",
+				"dummySvcName-proxless.dummyNsName.svc.cluster.local",
+			},
 		},
 	}
 
 	for _, tc := range testCases {
-		got := genDomains(tc.domains, tc.svcName, tc.namespace)
+		got := genDomains(tc.domains, tc.svcName, tc.namespace, tc.namespaceScoped)
 
 		if !utils.CompareUnorderedArray(tc.want, got) {
-			t.Errorf("genDomains(%s, %s, %s) = %s; want = %s",
-				tc.domains, tc.svcName, tc.namespace, got, tc.want)
+			t.Errorf("genDomains(%s, %s, %s, %t) = %s; want = %s",
+				tc.domains, tc.svcName, tc.namespace, tc.namespaceScoped, got, tc.want)
 		}
 	}
 }
@@ -52,7 +90,7 @@ func Test_isAnnotationsProxlessCompatible(t *testing.T) {
 			map[string]string{
 				cluster.AnnotationServiceDeployKey: "deploy",
 			},
-			false,
+			true,
 		},
 	}
 

@@ -111,13 +111,13 @@ func TestController_RunServicesEngine(t *testing.T) {
 	c := NewController(inmemory.NewInMemoryStore(), fake.NewCluster())
 
 	// check the implemention of the fake client to understand the test
-	config.Namespace = "upsert"
+	config.NamespaceScope = "upsert"
 	c.RunServicesEngine()
 
 	_, err := c.store.GetRouteByDomain("mock.io")
 	assert.NoError(t, err)
 
-	config.Namespace = "delete"
+	config.NamespaceScope = "delete"
 	c.RunServicesEngine()
 
 	_, err = c.store.GetRouteByDomain("mock.io")

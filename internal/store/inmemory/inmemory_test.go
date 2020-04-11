@@ -79,7 +79,7 @@ func TestInMemoryStore_CheckDeployAndDomainsOwnership(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		errGot := s.checkDeployAndDomainsOwnership(tc.id, tc.deploy, tc.ns, tc.domains)
+		errGot := checkDeployAndDomainsOwnership(s, tc.id, tc.deploy, tc.ns, tc.domains)
 
 		if tc.errWanted != (errGot != nil) {
 			t.Errorf("checkDeployAndDomainsOwnership(%s, %s ,%s, %s) = %v, errWanted = %t",
@@ -92,7 +92,7 @@ func TestInMemoryStore_cleanOldDeploymentFromStore(t *testing.T) {
 	s := NewInMemoryStore()
 
 	r0, _ := model.NewRoute("0", "svc0", "", "deploy0", "ns0", []string{"example.0.0"})
-	s.createRoute(r0)
+	createRoute(s, r0)
 
 	testCases := []struct {
 		id      string
@@ -108,7 +108,7 @@ func TestInMemoryStore_cleanOldDeploymentFromStore(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		got := s.cleanOldDomainsFromStore(tc.route.GetDomains(), tc.domains)
+		got := cleanOldDomainsFromStore(s, tc.route.GetDomains(), tc.domains)
 
 		if !utils.CompareUnorderedArray(got, tc.want) {
 			t.Errorf("cleanOldDeploymentFromStore(id = %s, %s) = %s; want = %s", tc.id, tc.domains, got, tc.want)
@@ -120,7 +120,7 @@ func TestInMemoryStore_UpdateLastUse(t *testing.T) {
 	s := NewInMemoryStore()
 
 	r0, _ := model.NewRoute("0", "svc0", "", "deploy0", "ns0", []string{"example.0.0"})
-	s.createRoute(r0)
+	createRoute(s, r0)
 
 	lastUsed := r0.GetLastUsed()
 
@@ -149,7 +149,7 @@ func TestInMemoryStore_DeleteRoute(t *testing.T) {
 	s := NewInMemoryStore()
 
 	r0, _ := model.NewRoute("0", "svc0", "", "deploy0", "ns0", []string{"example.0.0"})
-	s.createRoute(r0)
+	createRoute(s, r0)
 
 	testCases := []struct {
 		id        string
@@ -167,7 +167,7 @@ func TestInMemoryStore_DeleteRoute(t *testing.T) {
 		}
 
 		if errGot == nil {
-			_, err := s.getRoute(tc.id)
+			_, err := getRoute(s, tc.id)
 
 			if err == nil {
 				t.Errorf("DeleteRoute(%s) = %v; route still in store", tc.id, errGot)

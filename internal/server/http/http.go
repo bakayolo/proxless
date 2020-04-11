@@ -2,10 +2,10 @@ package http
 
 import (
 	"fmt"
-	"github.com/rs/zerolog/log"
 	"github.com/valyala/fasthttp"
 	"kube-proxless/internal/config"
 	"kube-proxless/internal/controller"
+	"kube-proxless/internal/logger"
 	"kube-proxless/internal/server/utils"
 )
 
@@ -24,7 +24,7 @@ func NewHTTPServer(controller controller.Interface) *httpServer {
 }
 
 func (s *httpServer) Run() {
-	log.Info().Msgf("Proxless listening to %s", s.host)
+	logger.Infof("Proxless listening to %s", s.host)
 
 	s.client.listenAndServe(s.host, s.requestHandler)
 }
@@ -38,6 +38,8 @@ func (s *httpServer) requestHandler(ctx *fasthttp.RequestCtx) {
 	req.Header = ctx.Request.Header
 	req.SetBody(ctx.Request.Body())
 
+	logger.Debugf("Received request %s", ctx.Host())
+
 	host := utils.ParseHost(string(ctx.Host()))
 	route, err := s.controller.GetRouteByDomainFromStore(host)
 	if err != nil {
@@ -50,8 +52,11 @@ func (s *httpServer) requestHandler(ctx *fasthttp.RequestCtx) {
 		origin := fmt.Sprintf("%s.%s:%s", service, namespace, port)
 		req.SetHost(origin)
 
+		// update before because it's gonna take some time to scale up the deployment
+		_ = s.controller.UpdateLastUseInStore(host)
+
 		if err := s.client.do(req, res); err != nil { // First try
-			log.Debug().Msg("Error forwarding the request - Try scaling up the deployment")
+			logger.Debugf("Error forwarding the request %s - Try scaling up the deployment", ctx.Host())
 
 			// the deployment is scaled down, let's scale it up
 			deployment := route.GetDeployment()
@@ -68,24 +73,27 @@ func (s *httpServer) requestHandler(ctx *fasthttp.RequestCtx) {
 			forwardRequest(ctx, res)
 		}
 
+		// update after because it took some time to scale up the deployment
+		// TODO see this, I don't like updating it twice
 		_ = s.controller.UpdateLastUseInStore(host)
 	}
 }
 
 func forward404Error(ctx *fasthttp.RequestCtx, err error, host string) {
-	log.Error().Err(err).Msgf("Could not find domain '%s' with parsed url '%s' in the store", ctx.Host(), host)
+	logger.Errorf(err, "Could not find domain '%s' with parsed url '%s' in the store", ctx.Host(), host)
 	ctx.Response.SetStatusCode(404)
 	ctx.Response.SetBodyString(fmt.Sprintf("Domain %s not found", ctx.Host()))
 }
 
 func forwardRequest(ctx *fasthttp.RequestCtx, res *fasthttp.Response) {
-	log.Debug().Msg("Request forwarded")
+	logger.Debugf("Request %s forwarded", ctx.Host())
 	ctx.Response.SetBodyString(string(res.Body()))
 	ctx.Response.Header = res.Header
+	ctx.Response.SetStatusCode(res.StatusCode())
 }
 
 func forwardError(ctx *fasthttp.RequestCtx, err error) {
-	log.Error().Err(err).Msg("Error forwarding the request")
+	logger.Errorf(err, "Error forwarding %s request", ctx.Host())
 	ctx.Response.SetBodyString("Error in the server")
 	ctx.Response.SetStatusCode(500)
 }

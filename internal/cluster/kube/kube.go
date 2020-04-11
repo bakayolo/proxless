@@ -6,6 +6,7 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/clientcmd"
 	"kube-proxless/internal/logger"
+	"time"
 )
 
 type kubeCluster struct {
@@ -37,15 +38,17 @@ func (k *kubeCluster) ScaleUpDeployment(name, namespace string, timeout int) err
 }
 
 func (k *kubeCluster) ScaleDownDeployments(
-	namespace string, mustScaleDown func(deployName, namespace string) (bool, error)) []error {
-	return scaleDownDeployments(k.clientSet, namespace, mustScaleDown)
+	namespaceScope string, mustScaleDown func(deployName, namespace string) (bool, time.Duration, error)) []error {
+	return scaleDownDeployments(k.clientSet, namespaceScope, mustScaleDown)
 }
 
 func (k *kubeCluster) RunServicesEngine(
-	namespace string,
+	namespaceScope, proxlessService, proxlessNamespace string,
 	upsertStore func(id, name, port, deployName, namespace string, domains []string) error,
 	deleteRouteFromStore func(id string) error,
 ) {
 	// TODO make the resync is configurable
-	runServicesInformer(k.clientSet, namespace, k.servicesInformerResyncInterval, upsertStore, deleteRouteFromStore)
+	runServicesInformer(
+		k.clientSet, namespaceScope, proxlessService, proxlessNamespace, k.servicesInformerResyncInterval,
+		upsertStore, deleteRouteFromStore)
 }

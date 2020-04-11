@@ -8,22 +8,22 @@ image:
   pullPolicy: Always
 
 logLevel: DEBUG
-port: 8080
+port: 80
 
-## If true, NAMESPACE=`{{ .Release.Namespace }}` and a Role will be created - Proxless is only working within the namespace
-## If false, NAMESPACE=`` and a ClusterRole will be created - Proxless is available globally
+## If true, a Role will be created - Proxless is only working within the namespace
+## If false, a ClusterRole will be created - Proxless is available globally
 namespaceScoped: true
 
 env:
   MAX_CONS_PER_HOST: 10000
   SERVERLESS_TTL_SECONDS: 30 # Time in seconds proxless waits before scaling down the app
-  DEPLOYMENT_READINESS_TIMEOUT_SECONDS: 1 # Time in seconds proxless waits for the deployment to be ready when scaling up the app
+  DEPLOYMENT_READINESS_TIMEOUT_SECONDS: 30 # Time in seconds proxless waits for the deployment to be ready when scaling up the app
 
 service:
   type: "ClusterIP"
 
 ingress:
-  enabled: false
+  enabled: true
   annotations:
     kubernetes.io/ingress.class: nginx
   tls:
