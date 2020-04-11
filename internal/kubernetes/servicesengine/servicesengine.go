@@ -4,7 +4,7 @@ import (
 	"github.com/rs/zerolog/log"
 	core "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/cache"
-	"kube-proxless/internal/store"
+	"kube-proxless/internal/store/inmemory"
 )
 
 func StartServiceInformer(namespace string) {
@@ -61,7 +61,7 @@ func addServiceToStore(svc core.Service) {
 		port := genPort(svc.Spec.Ports)
 		domains := genDomains(svc.Annotations[annotationDomainKey], svc.Name, svc.Namespace)
 
-		store.UpdateStore(stringifyUid(svc.UID), svc.Name, port, deployName, svc.Namespace, domains)
+		inmemory.UpdateStore(string(svc.UID), svc.Name, port, deployName, svc.Namespace, domains)
 		log.Debug().Msgf("Service %s.%s added in store", svc.Name, svc.Namespace)
 	}
 }
@@ -71,7 +71,7 @@ func removeServiceFromStore(svc core.Service) {
 		deployName := svc.Annotations[annotationDeployKey]
 		removeProxyLabelFromDeployment(deployName, svc.Namespace)
 
-		store.DeleteObjectInStore(stringifyUid(svc.UID))
+		inmemory.DeleteObjectInStore(string(svc.UID))
 		log.Debug().Msgf("Service %s.%s deleted from store", svc.Name, svc.Namespace)
 	}
 }
@@ -90,7 +90,7 @@ func updateServiceInStore(oldSvc, newSvc core.Service) {
 		port := genPort(newSvc.Spec.Ports)
 		domains := genDomains(newSvc.Annotations[annotationDomainKey], newSvc.Name, newSvc.Namespace)
 
-		store.UpdateStore(stringifyUid(newSvc.UID), newSvc.Name, port, newDeployName, newSvc.Namespace, domains)
+		inmemory.UpdateStore(string(newSvc.UID), newSvc.Name, port, newDeployName, newSvc.Namespace, domains)
 		log.Debug().Msgf("Service %s.%s updated in store", newSvc.Name, newSvc.Namespace)
 	} else if !isProxlessCompatible(oldSvc) && isProxlessCompatible(newSvc) { // adding new service
 		addServiceToStore(newSvc)

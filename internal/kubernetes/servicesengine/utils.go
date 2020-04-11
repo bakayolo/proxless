@@ -5,17 +5,12 @@ import (
 	"fmt"
 	core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/informers"
 	"kube-proxless/internal/kubernetes"
 	"strconv"
 	"strings"
 	"time"
 )
-
-func stringifyUid(uid types.UID) string {
-	return string(uid)
-}
 
 func parseService(obj interface{}) (*core.Service, error) {
 	svc, ok := obj.(*core.Service)
