@@ -78,13 +78,19 @@ func removeServiceFromStore(svc core.Service) {
 
 func updateServiceInStore(oldSvc, newSvc core.Service) {
 	if isProxlessCompatible(oldSvc) && isProxlessCompatible(newSvc) { // updating service
-		deployName := newSvc.Annotations[annotationDeployKey]
-		updateDeploymentProxyLabel(oldSvc.Annotations[annotationDeployKey], newSvc.Annotations[annotationDeployKey], newSvc.Namespace)
+		newDeployName := newSvc.Annotations[annotationDeployKey]
+		oldDeployName := oldSvc.Annotations[annotationDeployKey]
+
+		// TODO add a test to only update the label if `oldDeployName` != `newDeployName`
+		// /!\ if the deployment does not exist when the service is created, `deployName` will not in the store
+		// /!\ therefore, it will never be update so the test has to be smarter than just a diff check.
+		removeProxyLabelFromDeployment(oldDeployName, newSvc.Namespace)
+		addProxyLabelToDeployment(newDeployName, newSvc.Namespace)
 
 		port := genPort(newSvc.Spec.Ports)
 		domains := genDomains(newSvc.Annotations[annotationDomainKey], newSvc.Name, newSvc.Namespace)
 
-		store.UpdateStore(stringifyUid(newSvc.UID), newSvc.Name, port, deployName, newSvc.Namespace, domains)
+		store.UpdateStore(stringifyUid(newSvc.UID), newSvc.Name, port, newDeployName, newSvc.Namespace, domains)
 		log.Debug().Msgf("Service %s.%s updated in store", newSvc.Name, newSvc.Namespace)
 	} else if !isProxlessCompatible(oldSvc) && isProxlessCompatible(newSvc) { // adding new service
 		addServiceToStore(newSvc)
@@ -95,7 +101,6 @@ func updateServiceInStore(oldSvc, newSvc core.Service) {
 
 func updateDeploymentProxyLabel(oldName, newName, namespace string) {
 	if oldName != newName {
-		removeProxyLabelFromDeployment(oldName, namespace)
-		addProxyLabelToDeployment(newName, namespace)
+
 	}
 }

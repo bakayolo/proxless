@@ -22,9 +22,12 @@ func addLabelToDeployment(name, namespace, label string) error {
 		return err
 	}
 
+	if deploy.Labels == nil {
+		deploy.Labels = map[string]string{}
+	}
 	deploy.Labels[label] = "true"
 	_, err = clientDeployment.Update(deploy)
-
+	log.Debug().Msgf("Deployment %s.%s update with proxless label", name, namespace)
 	return err
 }
 
@@ -44,7 +47,7 @@ func removeLabelFromDeployment(name, namespace, label string) error {
 		return err
 	}
 
-	if deploy.Labels[label] != "" {
+	if deploy.Labels != nil && deploy.Labels[label] != "" {
 		delete(deploy.Labels, label)
 	}
 	_, err = clientDeployment.Update(deploy)

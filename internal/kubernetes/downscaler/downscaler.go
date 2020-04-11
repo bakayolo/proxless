@@ -14,7 +14,7 @@ import (
 )
 
 func StartDownScaler() {
-	log.Info().Msgf("Starting Scaling Engine")
+	log.Info().Msgf("Starting DownScaler")
 	clientDeployment := kubernetes.ClientSet.AppsV1().Deployments(config.Namespace)
 	labelSelector := getProxyLabelSelector()
 
@@ -52,7 +52,7 @@ func scaleDownDeployment(deploy v1.Deployment, clientDeployment v1client.Deploym
 	if _, err := clientDeployment.Update(&deploy); err != nil {
 		log.Error().Err(err).Msgf("Could not scale down the deployment %s.%s", deploy.Name, deploy.Namespace)
 	} else {
-		log.Debug().Msgf("Deployment %s.%s scaled down after %s", deploy.Name, deploy.Namespace, strconv.Itoa(config.ServerlessTTL))
+		log.Debug().Msgf("Deployment %s.%s scaled down after %s secs", deploy.Name, deploy.Namespace, strconv.Itoa(config.ServerlessTTL))
 	}
 }
 
