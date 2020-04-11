@@ -4,18 +4,19 @@ import (
 	"flag"
 	"github.com/rs/zerolog/log"
 	"k8s.io/client-go/kubernetes"
+	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"kube-proxless/internal/config"
 )
 
 var (
-	clientSet *kubernetes.Clientset
+	ClientSet *kubernetes.Clientset
 )
 
-func LoadKubeClient() {
+func InitKubeClient() {
 	kubeConf := loadKubeConfig(config.KubeConfigPath)
-	clientSet = kubernetes.NewForConfigOrDie(kubeConf)
+	ClientSet = kubernetes.NewForConfigOrDie(kubeConf)
 }
 
 func loadKubeConfig(kubeConfigPath string) *rest.Config {

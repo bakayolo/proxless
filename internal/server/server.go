@@ -5,9 +5,9 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/valyala/fasthttp"
 	"kube-proxless/internal/config"
-	"kube-proxless/internal/kubernetes"
+	"kube-proxless/internal/kubernetes/upscaler"
 	"kube-proxless/internal/store"
-	"net/url"
+	"net"
 )
 
 var httpClient = fasthttp.Client{
@@ -35,21 +35,23 @@ func requestHandler(ctx *fasthttp.RequestCtx) {
 	req.SetBody(ctx.Request.Body())
 
 	host := parseHost(ctx)
-	route, err := store.GetRoute(host)
+	route, err := store.GetRouteByDomainKey(host)
 	if err != nil {
+		log.Error().Err(err).Msgf("Could not find domain '%s' with parsed url '%s' in the store", ctx.Host(), host)
 		ctx.Response.SetStatusCode(404)
 		ctx.Response.SetBodyString(fmt.Sprintf("Domain %s not found", ctx.Host()))
 	} else { // the route exists so we should have a deployment attached to the service
-		origin := fmt.Sprintf("%s:%s", route.Service, route.Port)
+		origin := fmt.Sprintf("%s.%s:%s", route.Service, route.Namespace, route.Port)
 		req.SetHost(origin)
 
-		// First try
-		if err := httpClient.Do(req, res); err != nil {
-			log.Debug().Msg("Error forwarding the request - Scaling up the deployment")
-			// Maybe the deployment is scaled down, let's scale it up
-			if err := kubernetes.ScaleUp(route.Label, route.Namespace); err != nil {
+		store.UpdateLastUse(host)                       // see how we can avoid doing that every time
+		if err := httpClient.Do(req, res); err != nil { // First try
+			log.Debug().Msg("Error forwarding the request - Try scaling up the deployment")
+			// the deployment is scaled down, let's scale it up
+			if err := upscaler.ScaleUpDeployment(route.Deployment, route.Namespace); err != nil {
 				forwardError(ctx, err)
 			} else { // Second try with the deployment scaled up
+				store.UpdateLastUse(host) // TODO remove that - we are updating again last use because of the timeout
 				if err := httpClient.Do(req, res); err != nil {
 					forwardError(ctx, err)
 				} else {
@@ -75,11 +77,9 @@ func forwardError(ctx *fasthttp.RequestCtx, err error) {
 }
 
 func parseHost(ctx *fasthttp.RequestCtx) string {
-	u, err := url.Parse(string(ctx.Host()))
-	if err != nil {
-		log.Error().Err(err).Msgf("Error parsing URL %s", ctx.Host())
-		return ""
+	host, _, err := net.SplitHostPort(string(ctx.Host()))
+	if err != nil { // no port
+		return string(ctx.Host())
 	}
-	//TODO why do I need to use `u.Scheme` instead of `u.Host`?
-	return u.Scheme
+	return host
 }

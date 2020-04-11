@@ -1,0 +1,43 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: 1 ## Fix it to 1 for the moment. Proxless is not scalable yet
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+    spec:
+      serviceAccountName: {{ .Release.Name }}
+      containers:
+      - name: main
+        image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        env:
+        - name: LOG_LEVEL
+          value: "{{ .Values.logLevel }}"
+        - name: PORT
+          value: "{{ .Values.port }}"
+        {{- if .Values.namespaceScoped }}
+        - name: NAMESPACE
+          value: "{{ .Release.Namespace }}"
+        {{- end }}
+        {{- range $key, $val := .Values.env }}
+        - name: {{ $key }}
+          value: "{{ $val }}"
+        {{- end }}
+        ports:
+        - containerPort: {{ .Values.port }}
+          name: "http"
+          protocol: TCP
+        readinessProbe:
+          tcpSocket:
+            port: {{ .Values.port }}
+        livenessProbe:
+          tcpSocket:
+            port: {{ .Values.port }}
