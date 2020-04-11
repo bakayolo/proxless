@@ -1,6 +1,6 @@
 package servicesengine
 
 const (
-	annotationDomainKey = "proxless/domain"
+	annotationDomainKey = "proxless/domains"
 	annotationDeployKey = "proxless/deployment"
 )

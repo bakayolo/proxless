@@ -8,7 +8,7 @@ Proxless scale to 0 your deployments after N seconds idle and scale them back to
 
 ## Installation
 
-A helm chart will be available soon.
+A helm chart is available [here](helm)
 
 ## Development Setup
 

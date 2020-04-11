@@ -1,0 +1,23 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    {{ toYaml .Values.ingress.annotations}}
+spec:
+  {{- if .Values.ingress.tls.enabled }}
+  tls:
+    - secretName: {{ .Values.ingress.tls.secret }}
+      hosts:
+        - {{ .Values.ingress.host}}
+  {{- end }}
+  rules:
+    - host: {{ .Values.ingress.host}}
+      http:
+        paths:
+          - backend:
+              serviceName: {{ .Release.Name }}
+              servicePort: {{ .Values.port }}
+{{- end }}

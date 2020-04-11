@@ -7,7 +7,7 @@ import (
 	"kube-proxless/internal/config"
 	"kube-proxless/internal/kubernetes/upscaler"
 	"kube-proxless/internal/store"
-	"net/url"
+	"net"
 )
 
 var httpClient = fasthttp.Client{
@@ -37,6 +37,7 @@ func requestHandler(ctx *fasthttp.RequestCtx) {
 	host := parseHost(ctx)
 	route, err := store.GetRouteByDomainKey(host)
 	if err != nil {
+		log.Error().Err(err).Msgf("Could not find domain '%s' with parsed url '%s' in the store", ctx.Host(), host)
 		ctx.Response.SetStatusCode(404)
 		ctx.Response.SetBodyString(fmt.Sprintf("Domain %s not found", ctx.Host()))
 	} else { // the route exists so we should have a deployment attached to the service
@@ -76,10 +77,9 @@ func forwardError(ctx *fasthttp.RequestCtx, err error) {
 }
 
 func parseHost(ctx *fasthttp.RequestCtx) string {
-	u, err := url.Parse(string(ctx.Host()))
-	if err != nil {
-		log.Error().Err(err).Msgf("Error parsing URL %s", ctx.Host())
-		return ""
+	host, _, err := net.SplitHostPort(string(ctx.Host()))
+	if err != nil { // no port
+		return string(ctx.Host())
 	}
-	return u.Scheme // TODO why do I need to use `u.Scheme` instead of `u.Host`?
+	return host
 }

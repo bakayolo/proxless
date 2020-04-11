@@ -36,8 +36,10 @@ func genInformerFactory(namespace string) informers.SharedInformerFactory {
 
 func genDomains(domains, name, namespace string) []string {
 	domainsArray := strings.Split(domains, ",")
-	domainsArray = append(domainsArray, fmt.Sprintf("%s.%s", name, namespace))
-	domainsArray = append(domainsArray, fmt.Sprintf("%s.%s.svc.cluster.local", name, namespace))
+	// TODO enable internal access - need 2 services for that
+	// 1 for the proxy - 1 for the app
+	// domainsArray = append(domainsArray, fmt.Sprintf("%s.%s", name, namespace))
+	// domainsArray = append(domainsArray, fmt.Sprintf("%s.%s.svc.cluster.local", name, namespace))
 	return domainsArray
 }
 
