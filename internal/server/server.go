@@ -34,8 +34,11 @@ func requestHandler(ctx *fasthttp.RequestCtx) {
 	req.Header = ctx.Request.Header
 	req.SetBody(ctx.Request.Body())
 
+	// TODO do it globally
+	store := inmemory.NewInMemoryStore()
+
 	host := parseHost(ctx)
-	route, err := inmemory.GetRouteByDomainKey(host)
+	route, err := store.GetRouteByDomain(host)
 	if err != nil {
 		log.Error().Err(err).Msgf("Could not find domain '%s' with parsed url '%s' in the store", ctx.Host(), host)
 		ctx.Response.SetStatusCode(404)
@@ -48,7 +51,6 @@ func requestHandler(ctx *fasthttp.RequestCtx) {
 		origin := fmt.Sprintf("%s.%s:%s", service, namespace, port)
 		req.SetHost(origin)
 
-		inmemory.UpdateLastUse(host)                    // see how we can avoid doing that every time
 		if err := httpClient.Do(req, res); err != nil { // First try
 			log.Debug().Msg("Error forwarding the request - Try scaling up the deployment")
 
@@ -57,7 +59,6 @@ func requestHandler(ctx *fasthttp.RequestCtx) {
 			if err := upscaler.ScaleUpDeployment(deployment, namespace); err != nil {
 				forwardError(ctx, err)
 			} else { // Second try with the deployment scaled up
-				inmemory.UpdateLastUse(host) // TODO remove that - we are updating again last use because of the timeout
 				if err := httpClient.Do(req, res); err != nil {
 					forwardError(ctx, err)
 				} else {
@@ -67,6 +68,8 @@ func requestHandler(ctx *fasthttp.RequestCtx) {
 		} else {
 			forwardRequest(ctx, res)
 		}
+
+		_ = store.UpdateLastUse(host)
 	}
 }
 

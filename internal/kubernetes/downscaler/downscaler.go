@@ -18,6 +18,9 @@ func StartDownScaler() {
 	clientDeployment := kubernetes.ClientSet.AppsV1().Deployments(config.Namespace)
 	labelSelector := getProxyLabelSelector()
 
+	// TODO do it globally
+	store := inmemory.NewInMemoryStore()
+
 	for true { // infinite loop
 		deploys, err := clientDeployment.List(labelSelector)
 		if err != nil {
@@ -27,7 +30,7 @@ func StartDownScaler() {
 			// don't do anything else, we don't wanna kill the proxy
 		} else {
 			for _, deploy := range deploys.Items {
-				if route, err := inmemory.GetRouteByDeploymentKey(deploy.Name, deploy.Namespace); err != nil {
+				if route, err := store.GetRouteByDeployment(deploy.Name, deploy.Namespace); err != nil {
 					log.Error().Err(err).Msgf("Could not get route from map for deployment %s.%s", deploy.Name, config.Namespace)
 				} else if *deploy.Spec.Replicas > int32(0) {
 					timeIdle := time.Now().Sub(route.GetLastUsed()).Seconds()

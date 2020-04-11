@@ -1,6 +1,7 @@
 package model
 
 import (
+	"github.com/google/uuid"
 	"kube-proxless/internal/utils"
 	"testing"
 	"time"
@@ -8,6 +9,7 @@ import (
 
 func TestNewRoute(t *testing.T) {
 	route := &Route{
+		id:         uuid.New().String(),
 		service:    "helloworld",
 		port:       "8080",
 		deployment: "helloworld",
@@ -19,7 +21,7 @@ func TestNewRoute(t *testing.T) {
 	routeWithDefaultPort.port = "80"
 
 	testCases := []struct {
-		id        int
+		id        string
 		svc       string
 		port      string
 		deploy    string
@@ -29,7 +31,7 @@ func TestNewRoute(t *testing.T) {
 		errWanted bool
 	}{
 		{ // route ok
-			0,
+			route.id,
 			route.service,
 			route.port,
 			route.deployment,
@@ -39,7 +41,7 @@ func TestNewRoute(t *testing.T) {
 			false,
 		},
 		{ // service missing
-			1,
+			route.id,
 			"",
 			route.port,
 			route.deployment,
@@ -49,7 +51,7 @@ func TestNewRoute(t *testing.T) {
 			true,
 		},
 		{ // deployment name missing
-			2,
+			route.id,
 			route.service,
 			route.port,
 			"",
@@ -59,7 +61,7 @@ func TestNewRoute(t *testing.T) {
 			true,
 		},
 		{ // namespace missing
-			3,
+			route.id,
 			route.service,
 			route.port,
 			route.deployment,
@@ -69,7 +71,7 @@ func TestNewRoute(t *testing.T) {
 			true,
 		},
 		{ // domains nil
-			4,
+			route.id,
 			route.service,
 			route.port,
 			route.deployment,
@@ -79,7 +81,7 @@ func TestNewRoute(t *testing.T) {
 			true,
 		},
 		{ // domains empty
-			5,
+			route.id,
 			route.service,
 			route.port,
 			route.deployment,
@@ -89,7 +91,7 @@ func TestNewRoute(t *testing.T) {
 			true,
 		},
 		{ // port empty -> must default to "80"
-			6,
+			route.id,
 			route.service,
 			"",
 			route.deployment,
@@ -101,33 +103,14 @@ func TestNewRoute(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		got, errGot := NewRoute(tc.svc, tc.port, tc.deploy, tc.ns, tc.domains)
+		got, errGot := NewRoute(tc.id, tc.svc, tc.port, tc.deploy, tc.ns, tc.domains)
 
 		if tc.errWanted != (errGot != nil) {
-			t.Errorf("CreateRoute(tc %d) - must get an error", tc.id)
+			t.Errorf("CreateRoute(tc %s) = %v, errWanted = %t", tc.id, errGot, tc.errWanted)
 		}
 
 		if errGot == nil && !compareRoute(got, tc.want) {
-			t.Errorf("CreateRoute(tc %d) - got and want does not match", tc.id)
-		}
-	}
-}
-
-func TestRoute_isDomainsValid(t *testing.T) {
-	testCases := []struct {
-		d    []string
-		want bool
-	}{
-		{[]string{"example.io"}, true},
-		{[]string{}, false},
-		{nil, false},
-	}
-
-	for _, tc := range testCases {
-		got := isDomainsValid(tc.d)
-
-		if got != tc.want {
-			t.Errorf("isDomainsValid(%s) = %t, want %t", tc.d, got, tc.want)
+			t.Errorf("CreateRoute(tc %s) - got and want does not match", tc.id)
 		}
 	}
 }
@@ -149,6 +132,8 @@ func TestRoute_useDefaultPortIfEmpty(t *testing.T) {
 		}
 	}
 }
+
+// TODO lot of duplicate code becuz of getter and setter - see if we can factorize
 
 func TestRoute_SetLastUsed(t *testing.T) {
 	route := Route{}
@@ -217,5 +202,131 @@ func TestRoute_GetLastUsed(t *testing.T) {
 
 	if got != route.lastUsed {
 		t.Errorf("GetLastUsed() = %s, want %s", got, route.lastUsed)
+	}
+}
+
+func TestRoute_GetId(t *testing.T) {
+	route := Route{}
+	route.id = uuid.New().String()
+	got := route.GetId()
+
+	if got != route.id {
+		t.Errorf("getId() = %s, want %s", got, route.id)
+	}
+}
+
+func TestRoute_SetDeployment(t *testing.T) {
+	testCases := []struct {
+		param     string
+		errWanted bool
+	}{
+		{"example", false},
+		{"", true},
+	}
+
+	for _, tc := range testCases {
+		route := Route{}
+		errGot := route.SetDeployment(tc.param)
+
+		if tc.errWanted != (errGot != nil) {
+			t.Errorf("SetDeployment(%s) = %v; errWanted = %t", route.deployment, errGot, tc.errWanted)
+		}
+
+		if errGot == nil && route.deployment != tc.param {
+			t.Errorf("SetDeployment(%s) != want %s", route.deployment, tc.param)
+		}
+	}
+}
+
+func TestRoute_SetNamespace(t *testing.T) {
+	testCases := []struct {
+		param     string
+		errWanted bool
+	}{
+		{"example", false},
+		{"", true},
+	}
+
+	for _, tc := range testCases {
+		route := Route{}
+		errGot := route.SetNamespace(tc.param)
+
+		if tc.errWanted != (errGot != nil) {
+			t.Errorf("SetNamespace(%s) = %v; errWanted = %t", route.namespace, errGot, tc.errWanted)
+		}
+
+		if errGot == nil && route.namespace != tc.param {
+			t.Errorf("SetNamespace(%s) != want %s", route.namespace, tc.param)
+		}
+	}
+}
+
+func TestRoute_SetPort(t *testing.T) {
+	testCases := []struct {
+		param     string
+		errWanted bool
+	}{
+		{"8080", false},
+		{"", true},
+	}
+
+	for _, tc := range testCases {
+		route := Route{}
+		errGot := route.SetPort(tc.param)
+
+		if tc.errWanted != (errGot != nil) {
+			t.Errorf("SetPort(%s) = %v; errWanted = %t", route.port, errGot, tc.errWanted)
+		}
+
+		if errGot == nil && route.port != tc.param {
+			t.Errorf("SetPort(%s) != want %s", route.port, tc.param)
+		}
+	}
+}
+
+func TestRoute_SetService(t *testing.T) {
+	testCases := []struct {
+		param     string
+		errWanted bool
+	}{
+		{"example", false},
+		{"", true},
+	}
+
+	for _, tc := range testCases {
+		route := Route{}
+		errGot := route.SetService(tc.param)
+
+		if tc.errWanted != (errGot != nil) {
+			t.Errorf("SetService(%s) = %v; errWanted = %t", route.service, errGot, tc.errWanted)
+		}
+
+		if errGot == nil && route.service != tc.param {
+			t.Errorf("SetService(%s) != want %s", route.service, tc.param)
+		}
+	}
+}
+
+func TestRoute_SetDomains(t *testing.T) {
+	testCases := []struct {
+		param     []string
+		errWanted bool
+	}{
+		{[]string{"example.io", "example.com"}, false},
+		{nil, true},
+		{[]string{}, true},
+	}
+
+	for _, tc := range testCases {
+		route := Route{}
+		errGot := route.SetDomains(tc.param)
+
+		if tc.errWanted != (errGot != nil) {
+			t.Errorf("SetDomains(%s) = %v; errWanted = %t", route.domains, errGot, tc.errWanted)
+		}
+
+		if errGot == nil && !utils.CompareUnorderedArray(tc.param, route.domains) {
+			t.Errorf("SetDomains(%s) != want %s", route.domains, tc.param)
+		}
 	}
 }
