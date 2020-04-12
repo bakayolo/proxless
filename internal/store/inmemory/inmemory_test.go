@@ -88,7 +88,7 @@ func TestInMemoryStore_CheckDeployAndDomainsOwnership(t *testing.T) {
 	}
 }
 
-func TestInMemoryStore_cleanDomains(t *testing.T) {
+func TestInMemoryStore_cleanOldDeploymentFromStore(t *testing.T) {
 	s := NewInMemoryStore()
 
 	r0, _ := model.NewRoute("0", "svc0", "", "deploy0", "ns0", []string{"example.0.0"})
@@ -108,10 +108,10 @@ func TestInMemoryStore_cleanDomains(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		got := s.cleanDomains(tc.route, tc.domains)
+		got := s.cleanOldDomainsFromStore(tc.route.GetDomains(), tc.domains)
 
 		if !utils.CompareUnorderedArray(got, tc.want) {
-			t.Errorf("cleanDomains(id = %s, %s) = %s; want = %s", tc.id, tc.domains, got, tc.want)
+			t.Errorf("cleanOldDeploymentFromStore(id = %s, %s) = %s; want = %s", tc.id, tc.domains, got, tc.want)
 		}
 	}
 }

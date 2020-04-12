@@ -45,8 +45,10 @@ func (s *InMemoryStore) UpsertStore(id, service, port, deploy, namespace string,
 			)
 		}
 
-		// /!\ this need to be on top - otherwise the data will have already been overriden
-		newKeys := s.cleanStore(deploy, namespace, domains, existingRoute)
+		// /!\ this need to be on top - otherwise the data will have already been overriden in the route
+		newKeys := s.cleanStore(
+			existingRoute.GetDeployment(), existingRoute.GetNamespace(), existingRoute.GetDomains(),
+			deploy, namespace, domains)
 
 		// associate the route to new deployment key / domains
 		for _, k := range newKeys {
@@ -103,20 +105,22 @@ func (s *InMemoryStore) createRoute(route *model.Route) {
 	}
 }
 
-// Remove domains and deployment from the existing route if they are not in the new route anymore
-func (s *InMemoryStore) cleanStore(newDeploy, newNs string, newDomains []string, existingRoute *model.Route) []string {
+// Remove old domains and deployment from the store if they are not == new ones
+func (s *InMemoryStore) cleanStore(
+	oldDeploy, oldNs string, oldDomains []string,
+	newDeploy, newNs string, newDomains []string) []string {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
 	var newKeys []string
 
-	deployKeyNotInStore := s.cleanDeployment(existingRoute, newDeploy, newNs)
+	deployKeyNotInStore := s.cleanOldDeploymentFromStore(oldDeploy, oldNs, newDeploy, newNs)
 
 	if deployKeyNotInStore != "" {
 		newKeys = append(newKeys, deployKeyNotInStore)
 	}
 
-	domainsNotInStore := s.cleanDomains(existingRoute, newDomains)
+	domainsNotInStore := s.cleanOldDomainsFromStore(oldDomains, newDomains)
 
 	if newDomains != nil {
 		newKeys = append(newKeys, domainsNotInStore...)
@@ -130,10 +134,10 @@ func (s *InMemoryStore) cleanStore(newDeploy, newNs string, newDomains []string,
 }
 
 // return the new deployment key if it does not exist in the store
-func (s *InMemoryStore) cleanDeployment(existingRoute *model.Route, newDeploy, newNs string) string {
-	oldDeploymentKey := genDeploymentKey(existingRoute.GetDeployment(), existingRoute.GetNamespace())
-
+func (s *InMemoryStore) cleanOldDeploymentFromStore(oldDeploy, oldNs, newDeploy, newNs string) string {
+	oldDeploymentKey := genDeploymentKey(oldDeploy, oldNs)
 	newDeploymentKey := genDeploymentKey(newDeploy, newNs)
+
 	if oldDeploymentKey != newDeploymentKey {
 		delete(s.m, oldDeploymentKey)
 		return newDeploymentKey
@@ -143,10 +147,8 @@ func (s *InMemoryStore) cleanDeployment(existingRoute *model.Route, newDeploy, n
 }
 
 // TODO review complexity
-// return the new domains from the list who do not exist in the store
-func (s *InMemoryStore) cleanDomains(existingRoute *model.Route, newDomains []string) []string {
-	oldDomains := existingRoute.GetDomains()
-
+// return the new domains that are not in the newDomains list
+func (s *InMemoryStore) cleanOldDomainsFromStore(oldDomains, newDomains []string) []string {
 	// get the difference between the 2 domains arrays
 	diff := utils.DiffUnorderedArray(oldDomains, newDomains)
 
@@ -199,6 +201,7 @@ func (s *InMemoryStore) UpdateLastUse(domain string) error {
 	defer s.lock.Unlock()
 
 	if route, ok := s.m[domain]; ok {
+		// No need to persist in the store, it's a pointer
 		route.SetLastUsed(time.Now())
 		return nil
 	}
