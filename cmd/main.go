@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/rs/zerolog/log"
+	"kube-proxless/internal/cluster/kube"
 	"kube-proxless/internal/config"
 	ctrl "kube-proxless/internal/controller"
 	"kube-proxless/internal/kubernetes"
@@ -20,8 +21,9 @@ func main() {
 	go downscaler.StartDownScaler()
 
 	store := inmemory.NewInMemoryStore()
+	cluster := kube.NewKubeClient()
 
-	controller := ctrl.NewController(store)
+	controller := ctrl.NewController(store, cluster)
 
 	httpServer := http.NewHTTPServer(controller)
 	httpServer.StartServer()

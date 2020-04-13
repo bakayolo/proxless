@@ -81,3 +81,7 @@ func keysNotInMap(keys []string, m map[string]bool) []string {
 func IsArrayEmpty(array []string) bool {
 	return array == nil || len(array) == 0
 }
+
+func Int32Ptr(i int32) *int32 {
+	return &i
+}

@@ -2,6 +2,12 @@ package controller
 
 import "kube-proxless/internal/model"
 
+type mockCluster struct{}
+
+func (*mockCluster) ScaleUpDeployment(name, namespace string) error {
+	return nil
+}
+
 type mockStore struct{}
 
 func (*mockStore) UpsertStore(id, service, port, deploy, namespace string, domains []string) error {

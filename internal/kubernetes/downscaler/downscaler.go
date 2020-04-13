@@ -6,6 +6,7 @@ import (
 	v1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1client "k8s.io/client-go/kubernetes/typed/apps/v1"
+	"k8s.io/utils/pointer"
 	"kube-proxless/internal/config"
 	"kube-proxless/internal/kubernetes"
 	"kube-proxless/internal/store/inmemory"
@@ -51,12 +52,10 @@ func getProxyLabelSelector() metav1.ListOptions {
 }
 
 func scaleDownDeployment(deploy v1.Deployment, clientDeployment v1client.DeploymentInterface) {
-	deploy.Spec.Replicas = int32Ptr(0)
+	deploy.Spec.Replicas = pointer.Int32Ptr(0)
 	if _, err := clientDeployment.Update(&deploy); err != nil {
 		log.Error().Err(err).Msgf("Could not scale down the deployment %s.%s", deploy.Name, deploy.Namespace)
 	} else {
 		log.Debug().Msgf("Deployment %s.%s scaled down after %s secs", deploy.Name, deploy.Namespace, strconv.Itoa(config.ServerlessTTL))
 	}
 }
-
-func int32Ptr(i int32) *int32 { return &i }

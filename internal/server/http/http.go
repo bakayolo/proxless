@@ -6,7 +6,6 @@ import (
 	"github.com/valyala/fasthttp"
 	"kube-proxless/internal/config"
 	"kube-proxless/internal/controller"
-	"kube-proxless/internal/kubernetes/upscaler"
 	"kube-proxless/internal/server/utils"
 )
 
@@ -62,7 +61,7 @@ func (s *HTTPServer) requestHandler(ctx *fasthttp.RequestCtx) {
 
 			// the deployment is scaled down, let's scale it up
 			deployment := route.GetDeployment()
-			if err := upscaler.ScaleUpDeployment(deployment, namespace); err != nil {
+			if err := s.controller.ScaleUpDeployment(deployment, namespace); err != nil {
 				s.forwardError(ctx, err)
 			} else { // Second try with the deployment scaled up
 				if err := s.client.Do(req, res); err != nil {

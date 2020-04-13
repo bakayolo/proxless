@@ -92,3 +92,12 @@ func TestIsArrayEmpty(t *testing.T) {
 		}
 	}
 }
+
+func TestInt32Ptr(t *testing.T) {
+	want := int32(3)
+	got := Int32Ptr(want)
+
+	if *got != want {
+		t.Errorf("Int32Ptr(%d) = %d, want %d", want, got, want)
+	}
+}

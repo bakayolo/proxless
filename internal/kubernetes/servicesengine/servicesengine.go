@@ -107,9 +107,3 @@ func updateServiceInStore(oldSvc, newSvc core.Service) {
 		removeServiceFromStore(oldSvc)
 	}
 }
-
-func updateDeploymentProxyLabel(oldName, newName, namespace string) {
-	if oldName != newName {
-
-	}
-}
