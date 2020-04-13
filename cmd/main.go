@@ -3,10 +3,12 @@ package main
 import (
 	"github.com/rs/zerolog/log"
 	"kube-proxless/internal/config"
+	ctrl "kube-proxless/internal/controller"
 	"kube-proxless/internal/kubernetes"
 	"kube-proxless/internal/kubernetes/downscaler"
 	"kube-proxless/internal/kubernetes/servicesengine"
-	"kube-proxless/internal/server"
+	"kube-proxless/internal/server/http"
+	"kube-proxless/internal/store/inmemory"
 )
 
 func main() {
@@ -17,5 +19,10 @@ func main() {
 	go servicesengine.StartServiceInformer(config.Namespace)
 	go downscaler.StartDownScaler()
 
-	server.StartServer()
+	store := inmemory.NewInMemoryStore()
+
+	controller := ctrl.NewController(store)
+
+	httpServer := http.NewHTTPServer(controller)
+	httpServer.StartServer()
 }
