@@ -7,6 +7,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
+	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/utils/pointer"
@@ -119,6 +120,9 @@ func (c *KubeClient) scaleDown(
 				if err != nil {
 					log.Error().Err(err).Msgf(""+
 						"Could not scale down the deployment %s.%s",
+						deploy.Name, deploy.Namespace)
+				} else {
+					log.Debug().Msgf("Deployment %s.%s scaled down",
 						deploy.Name, deploy.Namespace)
 				}
 			}

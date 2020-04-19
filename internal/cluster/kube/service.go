@@ -168,9 +168,9 @@ func updateServiceInStore(
 
 		err = upsertStore(string(newSvc.UID), newSvc.Name, port, newDeployName, newSvc.Namespace, domains)
 		if err == nil {
-			log.Debug().Msgf("Service %s.%s added in store", newSvc.Name, newSvc.Namespace)
+			log.Debug().Msgf("Service %s.%s updated in store", newSvc.Name, newSvc.Namespace)
 		} else {
-			log.Error().Err(err).Msgf("error adding service %s.%s in store", newSvc.Name, newSvc.Namespace)
+			log.Error().Err(err).Msgf("error updating service %s.%s in store", newSvc.Name, newSvc.Namespace)
 		}
 	} else if !isAnnotationsProxlessCompatible(oldSvc.ObjectMeta) && isAnnotationsProxlessCompatible(newSvc.ObjectMeta) { // adding new service
 		addServiceToStore(newSvc, labelDeployment, upsertStore)

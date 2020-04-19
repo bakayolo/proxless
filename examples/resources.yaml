@@ -23,7 +23,7 @@ kind: Service
 metadata:
   name: hello-world
   annotations:
-    proxless/domains: "hello-world.proxless.kintohub.net" ## domains names proxless will be able to proxy
+    proxless/domains: "hello-world.proxless.kintohub.net,www.example.io" ## domains names proxless will be able to proxy
     proxless/deployment: "hello-world" ## name of the deployment proxless will scale up and down
 spec:
   selector:
