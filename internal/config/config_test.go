@@ -7,13 +7,7 @@ import (
 )
 
 func TestLoadEnvVars(t *testing.T) {
-	defer func() {
-		if r := recover(); r != nil {
-			t.Errorf("LoadEnvVars() - must not panic")
-		}
-	}()
-
-	// only one test since all the environment variables have default values atm
+	// make sure it does not panic
 	LoadEnvVars()
 }
 

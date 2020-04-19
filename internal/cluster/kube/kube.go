@@ -16,7 +16,8 @@ import (
 )
 
 type KubeClient struct {
-	deployClient KubeDeploymentInterface
+	deployClient  KubeDeploymentInterface
+	serviceClient KubeServiceInterface
 }
 
 func NewKubeClient() *KubeClient {
@@ -25,6 +26,9 @@ func NewKubeClient() *KubeClient {
 
 	return &KubeClient{
 		deployClient: &KubeDeploymentClient{
+			clientSet: clientSet,
+		},
+		serviceClient: &KubeServiceClient{
 			clientSet: clientSet,
 		},
 	}
@@ -99,7 +103,7 @@ func (c *KubeClient) scaleDown(
 	labelSelector metav1.ListOptions,
 	mustScaleDown func(deployName, namespace string) bool,
 ) {
-	deploys, err := c.deployClient.listDeployment(namespace, labelSelector)
+	deploys, err := c.deployClient.listDeployments(namespace, labelSelector)
 
 	if err != nil {
 		log.Error().Err(err).Msgf(
@@ -120,4 +124,27 @@ func (c *KubeClient) scaleDown(
 			}
 		}
 	}
+}
+
+func (c *KubeClient) RunServicesEngine(
+	namespace string,
+	labelDeployment func(deployName, namespace string) error,
+	unlabelDeployment func(deployName, namespace string) error,
+	upsertStore func(id, name, port, deployName, namespace string, domains []string) error,
+	deleteRouteFromStore func(id string) error,
+) {
+	c.serviceClient.runServicesInformer(
+		namespace, labelDeployment, unlabelDeployment, upsertStore, deleteRouteFromStore,
+	)
+}
+
+func (c *KubeClient) LabelDeployment(name, namespace string) error {
+	labels := map[string]string{cluster.LabelDeploymentProxless: "true"}
+	_, err := c.deployClient.labelDeployment(name, namespace, labels)
+	return err
+}
+
+func (c *KubeClient) UnlabelDeployment(name, namespace string) error {
+	_, err := c.deployClient.unlabelDeployment(name, namespace, cluster.LabelDeploymentProxless)
+	return err
 }

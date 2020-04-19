@@ -85,3 +85,37 @@ func IsArrayEmpty(array []string) bool {
 func Int32Ptr(i int32) *int32 {
 	return &i
 }
+
+// return the union of map A and B
+// /!\ if B has A values, the output will have B values
+func MergeMap(mapA, mapB map[string]string) map[string]string {
+	output := make(map[string]string)
+
+	for k, v := range mapA {
+		output[k] = v
+	}
+
+	for k, v := range mapB {
+		output[k] = v
+	}
+
+	return output
+}
+
+func CompareMap(m1, m2 map[string]string) bool {
+	if m1 == nil && m2 != nil || m1 != nil && m2 == nil {
+		return false
+	}
+
+	if len(m1) != len(m2) {
+		return false
+	}
+
+	for k, v := range m1 {
+		if m2[k] != v {
+			return false
+		}
+	}
+
+	return true
+}

@@ -7,12 +7,7 @@ var (
 )
 
 func TestDownScaler_Run(t *testing.T) {
-	defer func() {
-		if r := recover(); r != nil {
-			t.Errorf("Run() - must not panic")
-		}
-	}()
-
+	// make sure it does not panic
 	ds.Run()
 }
 

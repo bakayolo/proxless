@@ -15,6 +15,23 @@ func (*mockCluster) ScaleUpDeployment(name, namespace string) error {
 func (*mockCluster) RunDownScaler(namespace string, timeout time.Duration, mustScaleDown func(name, namespace string) bool) {
 }
 
+func (*mockCluster) RunServicesEngine(
+	namespace string,
+	labelDeployment func(deployName, namespace string) error,
+	unlabelDeployment func(deployName, namespace string) error,
+	upsertStore func(id, name, port, deployName, namespace string, domains []string) error,
+	deleteRouteFromStore func(id string) error,
+) {
+}
+
+func (*mockCluster) LabelDeployment(name, namespace string) error {
+	return nil
+}
+
+func (*mockCluster) UnlabelDeployment(name, namespace string) error {
+	return nil
+}
+
 type mockStore struct{}
 
 func (*mockStore) UpsertStore(id, service, port, deploy, namespace string, domains []string) error {

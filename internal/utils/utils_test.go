@@ -101,3 +101,44 @@ func TestInt32Ptr(t *testing.T) {
 		t.Errorf("Int32Ptr(%d) = %d, want %d", want, got, want)
 	}
 }
+
+func TestMergeMap(t *testing.T) {
+	testCases := []struct {
+		a, b, want map[string]string
+	}{
+		{map[string]string{"a": "a"}, map[string]string{"b": "b"}, map[string]string{"a": "a", "b": "b"}},
+		{map[string]string{"a": "a"}, map[string]string{}, map[string]string{"a": "a"}},
+		{map[string]string{}, map[string]string{"b": "b"}, map[string]string{"b": "b"}},
+		{map[string]string{"a": "a"}, map[string]string{"a": "b"}, map[string]string{"a": "b"}},
+	}
+
+	for _, tc := range testCases {
+		got := MergeMap(tc.a, tc.b)
+
+		if !CompareMap(tc.want, got) {
+			t.Errorf("MergeMap(%s, %s) = %s, want %s", tc.a, tc.b, got, tc.want)
+		}
+	}
+}
+
+func TestCompareMap(t *testing.T) {
+	testCases := []struct {
+		a, b map[string]string
+		want bool
+	}{
+		{map[string]string{"a": "a"}, map[string]string{"b": "b"}, false},
+		{map[string]string{"a": "a"}, nil, false},
+		{map[string]string{"a": "a"}, map[string]string{}, false},
+		{map[string]string{}, map[string]string{"b": "b"}, false},
+		{map[string]string{"a": "a"}, map[string]string{"a": "a", "b": "b"}, false},
+		{map[string]string{"a": "a"}, map[string]string{"a": "a"}, true},
+	}
+
+	for _, tc := range testCases {
+		got := CompareMap(tc.a, tc.b)
+
+		if got != tc.want {
+			t.Errorf("CompareMap(%s, %s) = %t, want %t", tc.a, tc.b, got, tc.want)
+		}
+	}
+}

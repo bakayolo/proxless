@@ -36,7 +36,7 @@ func (m *mockDeploymentClient) updateDeployment(deploy *v1.Deployment, namespace
 	return &v1.Deployment{}, nil
 }
 
-func (m *mockDeploymentClient) listDeployment(namespace string, options metav1.ListOptions) ([]v1.Deployment, error) {
+func (m *mockDeploymentClient) listDeployments(namespace string, options metav1.ListOptions) ([]v1.Deployment, error) {
 	if strings.Contains(options.LabelSelector, cluster.LabelDeploymentProxless) {
 		return []v1.Deployment{
 			{
@@ -50,4 +50,12 @@ func (m *mockDeploymentClient) listDeployment(namespace string, options metav1.L
 	}
 
 	return nil, errors.New("deployments not found")
+}
+
+func (m *mockDeploymentClient) labelDeployment(name, namespace string, labels map[string]string) (*v1.Deployment, error) {
+	return nil, nil
+}
+
+func (m *mockDeploymentClient) unlabelDeployment(name, namespace string, label string) (*v1.Deployment, error) {
+	return nil, nil
 }

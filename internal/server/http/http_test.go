@@ -23,12 +23,7 @@ func TestNewHTTPServer(t *testing.T) {
 }
 
 func TestHTTPServer_Run(t *testing.T) {
-	defer func() {
-		if r := recover(); r != nil {
-			t.Errorf("Run() - must not panic")
-		}
-	}()
-
+	// make sure it does not panic
 	server.Run()
 }
 
