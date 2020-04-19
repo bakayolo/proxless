@@ -4,11 +4,13 @@ import (
 	"flag"
 	"fmt"
 	"github.com/rs/zerolog/log"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/utils/pointer"
+	"kube-proxless/internal/cluster"
 	"kube-proxless/internal/config"
 	"time"
 )
@@ -74,4 +76,48 @@ func (c *KubeClient) waitForDeploymentAvailable(name, namespace string) error {
 		}
 	})
 	return err
+}
+
+func (c *KubeClient) RunDownScaler(
+	namespace string,
+	checkInterval time.Duration,
+	mustScaleDown func(deployName, namespace string) bool,
+) {
+	labelSelector := metav1.ListOptions{
+		LabelSelector: fmt.Sprintf("%s=%s", cluster.LabelDeploymentProxless, "true"),
+	}
+
+	for {
+		c.scaleDown(namespace, labelSelector, mustScaleDown)
+
+		time.Sleep(checkInterval)
+	}
+}
+
+func (c *KubeClient) scaleDown(
+	namespace string,
+	labelSelector metav1.ListOptions,
+	mustScaleDown func(deployName, namespace string) bool,
+) {
+	deploys, err := c.deployClient.listDeployment(namespace, labelSelector)
+
+	if err != nil {
+		log.Error().Err(err).Msgf(
+			"Could not list deployments with label %s in namespace %s",
+			labelSelector.LabelSelector, namespace)
+		// don't do anything else, we don't wanna kill the proxy
+	} else {
+		for _, deploy := range deploys {
+			if *deploy.Spec.Replicas > int32(0) && mustScaleDown(deploy.Name, deploy.Namespace) {
+				deploy.Spec.Replicas = pointer.Int32Ptr(0)
+
+				_, err := c.deployClient.updateDeployment(&deploy, deploy.Namespace)
+				if err != nil {
+					log.Error().Err(err).Msgf(""+
+						"Could not scale down the deployment %s.%s",
+						deploy.Name, deploy.Namespace)
+				}
+			}
+		}
+	}
 }

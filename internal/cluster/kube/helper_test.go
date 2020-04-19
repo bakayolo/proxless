@@ -3,13 +3,17 @@ package kube
 import (
 	"errors"
 	v1 "k8s.io/api/apps/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
+	"kube-proxless/internal/cluster"
+	"strings"
 )
 
 type mockDeploymentClient struct{}
 
 func (m *mockDeploymentClient) getDeployment(name, namespace string) (*v1.Deployment, error) {
 	if name == "err" {
-		return nil, errors.New("Deployment not found")
+		return nil, errors.New("deployment not found")
 	}
 
 	availability := 1
@@ -26,8 +30,24 @@ func (m *mockDeploymentClient) getDeployment(name, namespace string) (*v1.Deploy
 
 func (m *mockDeploymentClient) updateDeployment(deploy *v1.Deployment, namespace string) (*v1.Deployment, error) {
 	if deploy.Name == "err" {
-		return nil, errors.New("Deployment not found")
+		return nil, errors.New("deployment not found")
 	}
 
 	return &v1.Deployment{}, nil
+}
+
+func (m *mockDeploymentClient) listDeployment(namespace string, options metav1.ListOptions) ([]v1.Deployment, error) {
+	if strings.Contains(options.LabelSelector, cluster.LabelDeploymentProxless) {
+		return []v1.Deployment{
+			{
+				Spec: v1.DeploymentSpec{Replicas: pointer.Int32Ptr(1)},
+			},
+			{
+				ObjectMeta: metav1.ObjectMeta{Name: "err"},
+				Spec:       v1.DeploymentSpec{Replicas: pointer.Int32Ptr(1)},
+			},
+		}, nil
+	}
+
+	return nil, errors.New("deployments not found")
 }

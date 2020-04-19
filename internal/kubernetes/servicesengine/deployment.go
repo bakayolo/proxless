@@ -3,11 +3,12 @@ package servicesengine
 import (
 	"github.com/rs/zerolog/log"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"kube-proxless/internal/cluster"
 	"kube-proxless/internal/kubernetes"
 )
 
 func addProxyLabelToDeployment(name, namespace string) {
-	err := addLabelToDeployment(name, namespace, kubernetes.LabelProxless)
+	err := addLabelToDeployment(name, namespace, cluster.LabelDeploymentProxless)
 	if err != nil {
 		log.Error().Err(err).Msgf(
 			"Cannot add label on deployment %s.%s", name, namespace)
@@ -32,7 +33,7 @@ func addLabelToDeployment(name, namespace, label string) error {
 }
 
 func removeProxyLabelFromDeployment(name, namespace string) {
-	err := removeLabelFromDeployment(name, namespace, kubernetes.LabelProxless)
+	err := removeLabelFromDeployment(name, namespace, cluster.LabelDeploymentProxless)
 	if err != nil {
 		log.Error().Err(err).Msgf(
 			"Cannot remove label from deployment %s.%s", name, namespace)

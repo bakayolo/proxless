@@ -1,11 +1,66 @@
 package http
 
 import (
+	"fmt"
 	"github.com/valyala/fasthttp"
+	"kube-proxless/internal/config"
 	"testing"
 )
 
-var server = HTTPServer{}
+var server = HTTPServer{
+	controller: &mockController{},
+	client:     &mockFastHTTP{},
+	host:       "",
+}
+
+func TestNewHTTPServer(t *testing.T) {
+	HTTPServer := NewHTTPServer(nil)
+
+	if HTTPServer.host != fmt.Sprintf(":%s", config.Port) {
+		t.Errorf("NewHTTPServer(nil); host == %s but must be %s",
+			HTTPServer.host, fmt.Sprintf(":%s", config.Port))
+	}
+}
+
+func TestHTTPServer_Run(t *testing.T) {
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("Run() - must not panic")
+		}
+	}()
+
+	server.Run()
+}
+
+func TestHTTPServer_requestHandler(t *testing.T) {
+	testCases := []struct {
+		host       string
+		doMustFail bool
+		want       int
+	}{
+		{"", false, 404},
+		{"mock", false, 200},
+		{"mock", true, 500},
+		{"err", true, 500}, // fail upscaling
+	}
+
+	for _, tc := range testCases {
+		req := fasthttp.AcquireRequest()
+		req.SetHost(tc.host)
+
+		ctx := &fasthttp.RequestCtx{Request: *req}
+
+		server.client = &mockFastHTTP{doMustFail: tc.doMustFail}
+		server.requestHandler(ctx)
+
+		if ctx.Response.StatusCode() != tc.want {
+			t.Errorf("requestHandler(); statusCode = %d; want %d",
+				ctx.Response.StatusCode(), tc.want)
+		}
+
+		fasthttp.ReleaseRequest(req)
+	}
+}
 
 func TestHTTPServer_forward404Error(t *testing.T) {
 	ctx := &fasthttp.RequestCtx{

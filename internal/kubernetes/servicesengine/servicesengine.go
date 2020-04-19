@@ -4,6 +4,7 @@ import (
 	"github.com/rs/zerolog/log"
 	core "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/cache"
+	"kube-proxless/internal/cluster"
 	"kube-proxless/internal/store/inmemory"
 )
 
@@ -54,12 +55,12 @@ func StartServiceInformer(namespace string) {
 
 func addServiceToStore(svc core.Service) {
 	if isProxlessCompatible(svc) {
-		deployName := svc.Annotations[annotationDeployKey]
+		deployName := svc.Annotations[cluster.AnnotationServiceDeployKey]
 
 		addProxyLabelToDeployment(deployName, svc.Namespace)
 
 		port := genPort(svc.Spec.Ports)
-		domains := genDomains(svc.Annotations[annotationDomainKey], svc.Name, svc.Namespace)
+		domains := genDomains(svc.Annotations[cluster.AnnotationServiceDomainKey], svc.Name, svc.Namespace)
 
 		// TODO do it globally
 		store := inmemory.NewInMemoryStore()
@@ -71,7 +72,7 @@ func addServiceToStore(svc core.Service) {
 
 func removeServiceFromStore(svc core.Service) {
 	if isProxlessCompatible(svc) {
-		deployName := svc.Annotations[annotationDeployKey]
+		deployName := svc.Annotations[cluster.AnnotationServiceDeployKey]
 		removeProxyLabelFromDeployment(deployName, svc.Namespace)
 
 		// TODO do it globally
@@ -84,8 +85,8 @@ func removeServiceFromStore(svc core.Service) {
 
 func updateServiceInStore(oldSvc, newSvc core.Service) {
 	if isProxlessCompatible(oldSvc) && isProxlessCompatible(newSvc) { // updating service
-		newDeployName := newSvc.Annotations[annotationDeployKey]
-		oldDeployName := oldSvc.Annotations[annotationDeployKey]
+		newDeployName := newSvc.Annotations[cluster.AnnotationServiceDeployKey]
+		oldDeployName := oldSvc.Annotations[cluster.AnnotationServiceDeployKey]
 
 		// TODO add a test to only update the label if `oldDeployName` != `newDeployName`
 		// /!\ if the deployment does not exist when the service is created, `deployName` will not in the store
@@ -94,7 +95,7 @@ func updateServiceInStore(oldSvc, newSvc core.Service) {
 		addProxyLabelToDeployment(newDeployName, newSvc.Namespace)
 
 		port := genPort(newSvc.Spec.Ports)
-		domains := genDomains(newSvc.Annotations[annotationDomainKey], newSvc.Name, newSvc.Namespace)
+		domains := genDomains(newSvc.Annotations[cluster.AnnotationServiceDomainKey], newSvc.Name, newSvc.Namespace)
 
 		// TODO do it globally
 		store := inmemory.NewInMemoryStore()

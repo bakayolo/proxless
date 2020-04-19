@@ -10,18 +10,17 @@ import (
 )
 
 var (
-	KubeConfigPath         string
-	LogLevel               string
-	Port                   string
-	MaxConsPerHost         int
-	Namespace              string
-	ServerlessTTL          int
-	ServerlessPollInterval int
-	ReadinessPollTimeout   string
-	ReadinessPollInterval  string
+	KubeConfigPath        string
+	LogLevel              string
+	Port                  string
+	MaxConsPerHost        int
+	Namespace             string
+	ServerlessTTL         int
+	ReadinessPollTimeout  string
+	ReadinessPollInterval string
 )
 
-func LoadConfig() {
+func LoadEnvVars() {
 	KubeConfigPath = os.Getenv("KUBE_CONFIG_PATH")
 
 	LogLevel = parseString("LOG_LEVEL", "DEBUG")
@@ -32,7 +31,6 @@ func LoadConfig() {
 	Namespace = os.Getenv("NAMESPACE")
 
 	ServerlessTTL = parseInt("SERVERLESS_TTL_SECONDS", "30")
-	ServerlessPollInterval = parseInt("SERVERLESS_POLL_INTERVAL_SECONDS", "5")
 	ReadinessPollTimeout = parseString("READINESS_POLL_TIMEOUT_SECONDS", "30")
 	ReadinessPollInterval = parseString("READINESS_POLL_INTERVAL_SECONDS", "1")
 }
@@ -42,7 +40,7 @@ func parseString(key, defaultValue string) string {
 
 	if value == "" && defaultValue == "" {
 		log.Panic().Msgf("Could not find env var: %v", key)
-	} else if value == "" && defaultValue != "" {
+	} else if value == "" {
 		value = defaultValue
 	}
 	log.Info().Msgf("Successfully loaded env var: %v=%v", key, value)
@@ -62,16 +60,10 @@ func InitLogger() zerolog.Level {
 	switch strings.ToUpper(LogLevel) {
 	case "DEBUG":
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
-	case "INFO":
+	case "INFO", "WARN":
 		zerolog.SetGlobalLevel(zerolog.InfoLevel)
-	case "WARN":
-		zerolog.SetGlobalLevel(zerolog.WarnLevel)
-	case "ERROR":
+	case "ERROR", "FATAL", "PANIC":
 		zerolog.SetGlobalLevel(zerolog.ErrorLevel)
-	case "FATAL":
-		zerolog.SetGlobalLevel(zerolog.FatalLevel)
-	case "PANIC":
-		zerolog.SetGlobalLevel(zerolog.PanicLevel)
 	default:
 		zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	}

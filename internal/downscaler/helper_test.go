@@ -1,6 +1,7 @@
-package controller
+package downscaler
 
 import (
+	"errors"
 	"kube-proxless/internal/model"
 	"time"
 )
@@ -21,11 +22,25 @@ func (*mockStore) UpsertStore(id, service, port, deploy, namespace string, domai
 }
 
 func (*mockStore) GetRouteByDomain(domain string) (*model.Route, error) {
-	return model.NewRoute("mock", "mock", "", "mock", "mock", []string{"mock.io"})
+	return nil, nil
 }
 
 func (*mockStore) GetRouteByDeployment(deploy, namespace string) (*model.Route, error) {
-	return model.NewRoute("mock", "mock", "", "mock", "mock", []string{"mock.io"})
+	if deploy == "error" {
+		return nil, errors.New("route not found")
+	}
+
+	route, _ := model.NewRoute("mock", "mock", "", "mock", "mock", []string{"mock.io"})
+
+	if deploy == "timeout" {
+		route.SetLastUsed(time.Now().AddDate(-1, 0, 0)) // minus 1 year
+	}
+
+	if deploy == "notimeout" {
+		route.SetLastUsed(time.Now().AddDate(1, 0, 0)) // add 1 year
+	}
+
+	return route, nil
 }
 
 func (*mockStore) UpdateLastUse(domain string) error {

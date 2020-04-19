@@ -10,29 +10,23 @@ import (
 )
 
 type HTTPServer struct {
-	controller *controller.Controller
-	client     fasthttp.Client
+	controller controller.ControllerInterface
+	client     fastHTTPInterface
 	host       string
 }
 
 func NewHTTPServer(controller *controller.Controller) *HTTPServer {
 	return &HTTPServer{
 		controller: controller,
-		client: fasthttp.Client{
-			MaxConnsPerHost: config.MaxConsPerHost,
-		},
-		host: fmt.Sprintf(":%s", config.Port),
+		client:     newFastHTTP(config.MaxConsPerHost),
+		host:       fmt.Sprintf(":%s", config.Port),
 	}
 }
 
-func (s *HTTPServer) StartServer() {
+func (s *HTTPServer) Run() {
 	log.Info().Msgf("Proxless listening to %s", s.host)
 
-	server := fasthttp.Server{
-		Name:    "proxless-http",
-		Handler: s.requestHandler,
-	}
-	log.Fatal().Err(server.ListenAndServe(s.host))
+	s.client.listenAndServe(s.host, s.requestHandler)
 }
 
 func (s *HTTPServer) requestHandler(ctx *fasthttp.RequestCtx) {
@@ -56,7 +50,7 @@ func (s *HTTPServer) requestHandler(ctx *fasthttp.RequestCtx) {
 		origin := fmt.Sprintf("%s.%s:%s", service, namespace, port)
 		req.SetHost(origin)
 
-		if err := s.client.Do(req, res); err != nil { // First try
+		if err := s.client.do(req, res); err != nil { // First try
 			log.Debug().Msg("Error forwarding the request - Try scaling up the deployment")
 
 			// the deployment is scaled down, let's scale it up
@@ -64,7 +58,7 @@ func (s *HTTPServer) requestHandler(ctx *fasthttp.RequestCtx) {
 			if err := s.controller.ScaleUpDeployment(deployment, namespace); err != nil {
 				s.forwardError(ctx, err)
 			} else { // Second try with the deployment scaled up
-				if err := s.client.Do(req, res); err != nil {
+				if err := s.client.do(req, res); err != nil {
 					s.forwardError(ctx, err)
 				} else {
 					s.forwardRequest(ctx, res)
