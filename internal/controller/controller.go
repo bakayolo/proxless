@@ -43,7 +43,7 @@ func (c *controller) ScaleUpDeployment(name, namespace string) error {
 }
 
 func (c *controller) RunDownScaler(checkInterval int) {
-	logger.Infof("Starting downscaler routine...")
+	logger.Infof("Starting DownScaler...")
 
 	defer func() {
 		if err := recover(); err != nil {
@@ -84,7 +84,7 @@ func scaleDownDeployments(c *controller) []error {
 }
 
 func (c *controller) RunServicesEngine() {
-	log.Info().Msgf("Starting Services Engine routine...")
+	log.Info().Msgf("Starting Services Engine...")
 
 	defer func() {
 		if err := recover(); err != nil {

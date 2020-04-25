@@ -27,6 +27,7 @@ func InitLogger() {
 		zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	}
 
+	log.Logger = log.With().Caller().Logger()
 	log.Info().Msgf("logger initialized with %s settings", zerolog.GlobalLevel())
 }
 

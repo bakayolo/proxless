@@ -73,8 +73,6 @@ func runServicesInformer(
 	}
 	informer.AddEventHandler(eventHandler)
 
-	logger.Infof("Starting Services Informer")
-
 	stopCh := make(chan struct{})
 	defer close(stopCh)
 	informer.Run(stopCh)
