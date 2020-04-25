@@ -49,8 +49,7 @@ Parameter | Description | Default
 `namespaceScoped` | is proxless working within a single namespace or across multiple namespaces | `true`
 `env.MAX_CONS_PER_HOST` | max connections proxless can forward for a single host. More info [here](https://godoc.org/github.com/valyala/fasthttp#Client) | `10000`
 `env.SERVERLESS_TTL_SECONDS` | time in seconds proxless waits before scaling down the app | `30`
-`env.READINESS_POLL_TIMEOUT_SECONDS` | time in seconds proxless waits for the deployment to be ready when scaling up the app | false
-`env.READINESS_POLL_INTERVAL_SECONDS` | interval in seconds when proxless check the deployment readiness | `1`
+`env.DEPLOYMENT_READINESS_TIMEOUT_SECONDS` | time in seconds proxless waits for the deployment to be ready when scaling up the app | false
 `service.type` | kubernetes service type | `ClusterIP`
 `ingress.enabled` | create a kubernetes ingress resource for calling proxless externally. | `false`
 `ingress.annotations` | ingress annotations | `kubernetes.io/ingress.class: nginx`

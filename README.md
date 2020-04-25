@@ -1,10 +1,18 @@
 # Proxless
 
-> Reduce your kubernetes cost by making all your deployments serverless with Proxless
+> Reduce your kubernetes cost by making all your deployments **on-demand** with Proxless
 
-Proxless is an open-source proxy made for Kubernetes.
-Every deployment/service that are fronted by Proxless will be made serverless.
-Proxless scale to 0 your deployments after N seconds idle and scale them back to 1 after a call to the URL.
+Proxless is an **open-source proxy for Kubernetes**.
+
+It fronts the services you configure and makes the deployment associated **on-demand**.  
+Basically, it scales up and down your deployments based on the demand (service requested or idle).
+
+**No need a CRD, no need a huge stack, the proxless deployment is the only thing u need.**
+
+## Disclaimer
+
+Proxless is provided in alpha mode.  
+Using it on your production cluster is done at your own risks.
 
 ## Installation
 

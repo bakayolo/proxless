@@ -17,8 +17,7 @@ namespaceScoped: true
 env:
   MAX_CONS_PER_HOST: 10000
   SERVERLESS_TTL_SECONDS: 30 # Time in seconds proxless waits before scaling down the app
-  READINESS_POLL_TIMEOUT_SECONDS: 30 # Time in seconds proxless waits for the deployment to be ready when scaling up the app
-  READINESS_POLL_INTERVAL_SECONDS: 1 # Interval in seconds when proxless check the deployment readiness
+  DEPLOYMENT_READINESS_TIMEOUT_SECONDS: 1 # Time in seconds proxless waits for the deployment to be ready when scaling up the app
 
 service:
   type: "ClusterIP"
