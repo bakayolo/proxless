@@ -1,76 +1,137 @@
 package kube
 
 import (
-	"fmt"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/stretchr/testify/assert"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes/fake"
+	"k8s.io/utils/pointer"
 	"kube-proxless/internal/cluster"
-	"kube-proxless/internal/config"
+	"kube-proxless/internal/utils"
 	"testing"
+	"time"
 )
 
-var (
-	k = KubeClient{
-		deployClient: &mockDeploymentClient{},
-	}
-)
+func TestClusterClient_ScaleUpDeployment(t *testing.T) {
+	client := NewClusterClient(fake.NewSimpleClientset())
 
-func TestKubeClient_waitForDeploymentAvailable(t *testing.T) {
-	config.ReadinessPollInterval = "1"
-	config.ReadinessPollTimeout = "1"
+	timeout := 1
 
-	testCases := []struct {
-		name      string // name define the output of the `getDeployment`
-		errWanted bool
-	}{
-		{"err", true},
-		{"timeout", true},
-		{"mock", false},
-	}
+	// error - deployment is not in kubernetes
+	assert.Error(t, client.ScaleUpDeployment(dummyProxlessName, dummyNamespaceName, timeout))
 
-	for _, tc := range testCases {
-		errGot := k.waitForDeploymentAvailable(tc.name, "")
+	helper_createNamespace(t, client.clientSet)
+	deploy := helper_createProxlessCompatibleDeployment(t, client.clientSet)
 
-		if tc.errWanted != (errGot != nil) {
-			t.Errorf("waitForDeploymentAvailable(%s, _) = %v; error wanted = %t", tc.name, errGot, tc.errWanted)
-		}
+	// error - deployment in kubernetes but not available
+	assert.Error(t, client.ScaleUpDeployment(dummyProxlessName, dummyNamespaceName, timeout))
+
+	deploy.Status.AvailableReplicas = 1
+	helper_updateDeployment(t, client.clientSet, deploy)
+
+	// no error - deployment in kubernetes and available
+	assert.NoError(t, client.ScaleUpDeployment(dummyProxlessName, dummyNamespaceName, timeout))
+}
+
+func TestClusterClient_ScaleDownDeployments(t *testing.T) {
+	client := NewClusterClient(fake.NewSimpleClientset())
+
+	// error - deployment is not in kubernetes
+	helper_assertAtLeastOneError(t, client.ScaleDownDeployments(dummyNamespaceName, helper_shouldScaleDown))
+
+	helper_createNamespace(t, client.clientSet)
+	deploy := helper_createProxlessCompatibleDeployment(t, client.clientSet)
+	randomDeployCreated := helper_createRandomDeployment(t, client.clientSet) // this deployment must not be scaled down
+
+	// no error - deployment in kubernetes and scaled down
+	helper_assertNoError(t, client.ScaleDownDeployments(dummyNamespaceName, helper_shouldScaleDown))
+
+	deploy.Spec.Replicas = pointer.Int32Ptr(1)
+	helper_updateDeployment(t, client.clientSet, deploy)
+
+	// no error - deployment in kubernetes and scaled up
+	helper_assertNoError(t, client.ScaleDownDeployments(dummyNamespaceName, helper_shouldScaleDown))
+
+	randomDeploy, _ := getDeployment(client.clientSet, dummyNonProxlessName, dummyNamespaceName)
+	if *randomDeploy.Spec.Replicas != *randomDeployCreated.Spec.Replicas {
+		t.Errorf("ScaleDownDeployments(); must not scale down not proxless deployment. Replicas = %d; Want = %d",
+			*randomDeploy.Spec.Replicas, *randomDeployCreated.Spec.Replicas)
 	}
 }
 
-func TestKubeClient_ScaleUpDeployment(t *testing.T) {
-	config.ReadinessPollInterval = "1"
-	config.ReadinessPollTimeout = "1"
+// TODO split this test function - too much sh** here
+// the `time.sleep` are here to wait for the informer to sync
+func TestClusterClient_RunServicesEngine(t *testing.T) {
+	client := NewClusterClient(fake.NewSimpleClientset())
+	client.servicesInformerResyncInterval = 2
 
-	testCases := []struct {
-		name      string // name define the output of the `getDeployment`
-		errWanted bool
-	}{
-		{"err", true},
-		{"timeout", true},
-		{"mock", false},
+	store := fakeStore{store: map[string]string{}}
+
+	helper_createNamespace(t, client.clientSet)
+	helper_createProxlessCompatibleDeployment(t, client.clientSet)
+
+	// TODO check how we wanna deal with closing the channel and stopping the routine
+	// We could use a context https://github.com/kubernetes/client-go/blob/master/examples/fake-client/main_test.go
+	// but not sure if it is worth it
+	go client.RunServicesEngine(dummyNamespaceName, store.helper_upsertStore, store.helper_deleteRouteFromStore)
+
+	// don't store random services
+	helper_createRandomService(t, client.clientSet)
+	if len(store.store) > 0 {
+		t.Errorf("RunServicesEngine(); must not store random service information")
 	}
 
-	for _, tc := range testCases {
-		errGot := k.ScaleUpDeployment(tc.name, "")
-
-		if tc.errWanted != (errGot != nil) {
-			t.Errorf("ScaleUpDeployment(%s, _) = %v; error wanted = %t", tc.name, errGot, tc.errWanted)
-		}
-	}
-}
-
-func TestKubeClient_scaleDown(t *testing.T) {
-	testCases := []metav1.ListOptions{
-		{LabelSelector: fmt.Sprintf("%s=%s", cluster.LabelDeploymentProxless, "true")},
-		{LabelSelector: ""},
+	// store proxless compatible services
+	service := helper_createProxlessCompatibleService(t, client.clientSet)
+	time.Sleep(1 * time.Second)
+	if _, ok := store.store[string(service.UID)]; !ok {
+		t.Errorf("RunServicesEngine(); service not added in store")
 	}
 
-	for _, tc := range testCases {
-		k.scaleDown(
-			"",
-			tc,
-			func(deployName, namespace string) bool {
-				return true
-			},
-		)
+	// the deployment was not here during creation of the service so proxless label has not been added
+	// however the services informer resync must label it
+	helper_createRandomDeployment(t, client.clientSet)
+	time.Sleep(time.Duration(client.servicesInformerResyncInterval) * time.Second)
+	randomDeploy, _ := getDeployment(client.clientSet, dummyNonProxlessName, dummyNamespaceName)
+	labelsWant := map[string]string{cluster.LabelDeploymentProxless: "true"}
+	if !utils.CompareMap(randomDeploy.Labels, labelsWant) {
+		t.Errorf("RunServicesEngine(); deployment must have the label; labels = %s; labelsWant = %s",
+			randomDeploy.Labels, labelsWant)
+	}
+
+	// must unlabel the other deployment
+	service.Annotations[cluster.AnnotationServiceDeployKey] = dummyProxlessName
+	helper_updateService(t, client.clientSet, service)
+	time.Sleep(1 * time.Second)
+	randomDeploy, _ = getDeployment(client.clientSet, dummyNonProxlessName, dummyNamespaceName)
+	if len(randomDeploy.Labels) > 0 {
+		t.Errorf("RunServicesEngine(); labels must be removed; labels = %s", randomDeploy.Labels)
+	}
+
+	// must remove the service from the store and unlabel the deployment if the service is not proxless compatible anymore
+	service.Annotations = map[string]string{}
+	helper_updateService(t, client.clientSet, service)
+	time.Sleep(1 * time.Second)
+	proxlessDeploy, _ := getDeployment(client.clientSet, dummyProxlessName, dummyNamespaceName)
+	if len(proxlessDeploy.Labels) > 0 {
+		t.Errorf("RunServicesEngine(); labels must be removed; labels = %s", proxlessDeploy.Labels)
+	}
+	if len(store.store) > 0 {
+		t.Errorf("RunServicesEngine(); the service must be removed from the store")
+	}
+
+	// must remove the service from the store and unlabel the deployment if the service is deleted from kubernetes
+	service.Annotations = map[string]string{
+		cluster.AnnotationServiceDomainKey: "dummy.io",
+		cluster.AnnotationServiceDeployKey: dummyNonProxlessName,
+	}
+	helper_updateService(t, client.clientSet, service)
+	_ = client.clientSet.CoreV1().Services(dummyNamespaceName).Delete(dummyProxlessName, &v1.DeleteOptions{})
+	time.Sleep(1 * time.Second)
+	proxlessDeploy, _ = getDeployment(client.clientSet, dummyProxlessName, dummyNamespaceName)
+	if len(proxlessDeploy.Labels) > 0 {
+		t.Errorf("RunServicesEngine(); labels must be removed; labels = %s", proxlessDeploy.Labels)
+	}
+	if len(store.store) > 0 {
+		t.Errorf("RunServicesEngine(); the service must be removed from the store")
 	}
 }

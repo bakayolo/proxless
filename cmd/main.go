@@ -6,14 +6,16 @@ import (
 	"kube-proxless/internal/config"
 	ctrl "kube-proxless/internal/controller"
 	ds "kube-proxless/internal/downscaler"
+	"kube-proxless/internal/logger"
 	"kube-proxless/internal/server/http"
 	se "kube-proxless/internal/servicesengine"
 	"kube-proxless/internal/store/inmemory"
 )
 
 func main() {
+	logger.InitLogger()
+
 	config.LoadEnvVars()
-	log.Info().Msgf("Log Level is %s", config.InitLogger())
 
 	store := inmemory.NewInMemoryStore()
 	cluster := kube.NewKubeClient()

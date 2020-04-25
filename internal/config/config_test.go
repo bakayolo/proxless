@@ -1,7 +1,6 @@
 package config
 
 import (
-	"github.com/rs/zerolog"
 	"os"
 	"testing"
 )
@@ -78,26 +77,4 @@ func assertParseIntPanic(t *testing.T, key, defaultValue string, mustPanic bool)
 	}()
 
 	return parseInt(key, defaultValue)
-}
-
-func TestInitLogger(t *testing.T) {
-	testCases := []struct {
-		logLevel string
-		want     zerolog.Level
-	}{
-		{"info", zerolog.InfoLevel},
-		{"", zerolog.InfoLevel},
-		{"error", zerolog.ErrorLevel},
-		{"debug", zerolog.DebugLevel},
-		{"DEBUG", zerolog.DebugLevel},
-	}
-
-	for _, tc := range testCases {
-		LogLevel = tc.logLevel
-
-		got := InitLogger()
-		if got != tc.want {
-			t.Errorf("InitLogger() = %s; want = %s", got, tc.want)
-		}
-	}
 }

@@ -2,28 +2,22 @@ package config
 
 import (
 	_ "github.com/joho/godotenv/autoload"
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"os"
 	"strconv"
-	"strings"
 )
 
 var (
-	KubeConfigPath        string
-	LogLevel              string
-	Port                  string
-	MaxConsPerHost        int
-	Namespace             string
-	ServerlessTTL         int
-	ReadinessPollTimeout  string
-	ReadinessPollInterval string
+	KubeConfigPath             string
+	Port                       string
+	MaxConsPerHost             int
+	Namespace                  string
+	ServerlessTTL              int
+	DeploymentReadinessTimeout string
 )
 
 func LoadEnvVars() {
 	KubeConfigPath = os.Getenv("KUBE_CONFIG_PATH")
-
-	LogLevel = parseString("LOG_LEVEL", "DEBUG")
 
 	Port = parseString("PORT", "80")
 	MaxConsPerHost = parseInt("MAX_CONS_PER_HOST", "10000")
@@ -31,8 +25,7 @@ func LoadEnvVars() {
 	Namespace = os.Getenv("NAMESPACE")
 
 	ServerlessTTL = parseInt("SERVERLESS_TTL_SECONDS", "30")
-	ReadinessPollTimeout = parseString("READINESS_POLL_TIMEOUT_SECONDS", "30")
-	ReadinessPollInterval = parseString("READINESS_POLL_INTERVAL_SECONDS", "1")
+	DeploymentReadinessTimeout = parseString("DEPLOYMENT_READINESS_TIMEOUT_SECONDS", "30")
 }
 
 func parseString(key, defaultValue string) string {
@@ -54,18 +47,4 @@ func parseInt(key, defaultValue string) int {
 	}
 
 	return intValue
-}
-
-func InitLogger() zerolog.Level {
-	switch strings.ToUpper(LogLevel) {
-	case "DEBUG":
-		zerolog.SetGlobalLevel(zerolog.DebugLevel)
-	case "INFO", "WARN":
-		zerolog.SetGlobalLevel(zerolog.InfoLevel)
-	case "ERROR", "FATAL", "PANIC":
-		zerolog.SetGlobalLevel(zerolog.ErrorLevel)
-	default:
-		zerolog.SetGlobalLevel(zerolog.InfoLevel)
-	}
-	return zerolog.GlobalLevel()
 }
