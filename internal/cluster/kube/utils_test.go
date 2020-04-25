@@ -13,10 +13,10 @@ func Test_genDomains(t *testing.T) {
 		want                        []string
 	}{
 		{"example.io", "svc", "ns",
-			[]string{"example.io", "svc.ns", "svc.ns.svc.cluster.local"},
+			[]string{"example.io", "svc.ns", "svc.ns.svc.kubeCluster.local"},
 		},
 		{"example.io,example.com", "svc", "ns",
-			[]string{"example.io", "example.com", "svc.ns", "svc.ns.svc.cluster.local"},
+			[]string{"example.io", "example.com", "svc.ns", "svc.ns.svc.kubeCluster.local"},
 		},
 	}
 

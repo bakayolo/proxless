@@ -8,13 +8,13 @@ import (
 	"kube-proxless/internal/logger"
 )
 
-type ClusterClient struct {
+type kubeCluster struct {
 	clientSet                      kubernetes.Interface
 	servicesInformerResyncInterval int
 }
 
-func NewClusterClient(clientSet kubernetes.Interface) *ClusterClient {
-	return &ClusterClient{
+func NewCluster(clientSet kubernetes.Interface) *kubeCluster {
+	return &kubeCluster{
 		clientSet:                      clientSet,
 		servicesInformerResyncInterval: 60,
 	}
@@ -32,16 +32,16 @@ func NewKubeClient(kubeConfigPath string) kubernetes.Interface {
 	return kubernetes.NewForConfigOrDie(kubeConf)
 }
 
-func (c *ClusterClient) ScaleUpDeployment(name, namespace string, timeout int) error {
+func (c *kubeCluster) ScaleUpDeployment(name, namespace string, timeout int) error {
 	return scaleUpDeployment(c.clientSet, name, namespace, timeout)
 }
 
-func (c *ClusterClient) ScaleDownDeployments(
-	namespace string, mustScaleDown func(deployName, namespace string) bool) []error {
+func (c *kubeCluster) ScaleDownDeployments(
+	namespace string, mustScaleDown func(deployName, namespace string) (bool, error)) []error {
 	return scaleDownDeployments(c.clientSet, namespace, mustScaleDown)
 }
 
-func (c *ClusterClient) RunServicesEngine(
+func (c *kubeCluster) RunServicesEngine(
 	namespace string,
 	upsertStore func(id, name, port, deployName, namespace string, domains []string) error,
 	deleteRouteFromStore func(id string) error,

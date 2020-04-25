@@ -77,7 +77,7 @@ func waitForDeploymentAvailable(clientSet kubernetes.Interface, name, namespace 
 func scaleDownDeployments(
 	kubeClient kubernetes.Interface,
 	namespace string,
-	mustScaleDown func(deployName, namespace string) bool,
+	mustScaleDown func(deployName, namespace string) (bool, error),
 ) []error {
 	labelSelector := metav1.ListOptions{
 		LabelSelector: fmt.Sprintf("%s=%s", cluster.LabelDeploymentProxless, "true"),
@@ -94,15 +94,18 @@ func scaleDownDeployments(
 		errs = append(errs, err)
 	} else {
 		for _, deploy := range deploys {
-			if *deploy.Spec.Replicas > int32(0) && mustScaleDown(deploy.Name, deploy.Namespace) {
-				deploy.Spec.Replicas = pointer.Int32Ptr(0)
+			if *deploy.Spec.Replicas > int32(0) {
+				scaleDown, _ := mustScaleDown(deploy.Name, deploy.Namespace)
+				if scaleDown {
+					deploy.Spec.Replicas = pointer.Int32Ptr(0)
 
-				_, err := updateDeployment(kubeClient, &deploy, deploy.Namespace)
-				if err != nil {
-					logger.Errorf(err, "Could not scale down deployment %s.%s", deploy.Name, deploy.Namespace)
-					errs = append(errs, err)
-				} else {
-					logger.Debugf("Deployment %s.%s scaled down", deploy.Name, deploy.Namespace)
+					_, err := updateDeployment(kubeClient, &deploy, deploy.Namespace)
+					if err != nil {
+						logger.Errorf(err, "Could not scale down deployment %s.%s", deploy.Name, deploy.Namespace)
+						errs = append(errs, err)
+					} else {
+						logger.Debugf("Deployment %s.%s scaled down", deploy.Name, deploy.Namespace)
+					}
 				}
 			}
 		}

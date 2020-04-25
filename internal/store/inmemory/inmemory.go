@@ -9,19 +9,19 @@ import (
 	"time"
 )
 
-type InMemoryStore struct {
+type inMemoryStore struct {
 	m    map[string]*model.Route
 	lock sync.RWMutex
 }
 
-func NewInMemoryStore() *InMemoryStore {
-	return &InMemoryStore{
+func NewInMemoryStore() *inMemoryStore {
+	return &inMemoryStore{
 		m:    make(map[string]*model.Route),
 		lock: sync.RWMutex{},
 	}
 }
 
-func (s *InMemoryStore) UpsertStore(id, service, port, deploy, namespace string, domains []string) error {
+func (s *inMemoryStore) UpsertStore(id, service, port, deploy, namespace string, domains []string) error {
 	if id == "" || service == "" || deploy == "" || namespace == "" || utils.IsArrayEmpty(domains) {
 		return errors.New(
 			fmt.Sprintf(
@@ -75,7 +75,7 @@ func (s *InMemoryStore) UpsertStore(id, service, port, deploy, namespace string,
 }
 
 // return an error if deploy or domains are already associated to a different id
-func (s *InMemoryStore) checkDeployAndDomainsOwnership(id, deploy, ns string, domains []string) error {
+func (s *inMemoryStore) checkDeployAndDomainsOwnership(id, deploy, ns string, domains []string) error {
 	r, err := s.GetRouteByDeployment(deploy, ns)
 
 	if err == nil && r.GetId() != id {
@@ -93,7 +93,7 @@ func (s *InMemoryStore) checkDeployAndDomainsOwnership(id, deploy, ns string, do
 	return nil
 }
 
-func (s *InMemoryStore) createRoute(route *model.Route) {
+func (s *inMemoryStore) createRoute(route *model.Route) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -106,7 +106,7 @@ func (s *InMemoryStore) createRoute(route *model.Route) {
 }
 
 // Remove old domains and deployment from the store if they are not == new ones
-func (s *InMemoryStore) cleanStore(
+func (s *inMemoryStore) cleanStore(
 	oldDeploy, oldNs string, oldDomains []string,
 	newDeploy, newNs string, newDomains []string) []string {
 	s.lock.Lock()
@@ -134,7 +134,7 @@ func (s *InMemoryStore) cleanStore(
 }
 
 // return the new deployment key if it does not exist in the store
-func (s *InMemoryStore) cleanOldDeploymentFromStore(oldDeploy, oldNs, newDeploy, newNs string) string {
+func (s *inMemoryStore) cleanOldDeploymentFromStore(oldDeploy, oldNs, newDeploy, newNs string) string {
 	oldDeploymentKey := genDeploymentKey(oldDeploy, oldNs)
 	newDeploymentKey := genDeploymentKey(newDeploy, newNs)
 
@@ -148,7 +148,7 @@ func (s *InMemoryStore) cleanOldDeploymentFromStore(oldDeploy, oldNs, newDeploy,
 
 // TODO review complexity
 // return the new domains that are not in the newDomains list
-func (s *InMemoryStore) cleanOldDomainsFromStore(oldDomains, newDomains []string) []string {
+func (s *inMemoryStore) cleanOldDomainsFromStore(oldDomains, newDomains []string) []string {
 	// get the difference between the 2 domains arrays
 	diff := utils.DiffUnorderedArray(oldDomains, newDomains)
 
@@ -176,16 +176,16 @@ func genDeploymentKey(deployment, namespace string) string {
 	return fmt.Sprintf("%s.%s", deployment, namespace)
 }
 
-func (s *InMemoryStore) GetRouteByDomain(domain string) (*model.Route, error) {
+func (s *inMemoryStore) GetRouteByDomain(domain string) (*model.Route, error) {
 	return s.getRoute(domain)
 }
 
-func (s *InMemoryStore) GetRouteByDeployment(deploy, namespace string) (*model.Route, error) {
+func (s *inMemoryStore) GetRouteByDeployment(deploy, namespace string) (*model.Route, error) {
 	deploymentKey := genDeploymentKey(deploy, namespace)
 	return s.getRoute(deploymentKey)
 }
 
-func (s *InMemoryStore) getRoute(key string) (*model.Route, error) {
+func (s *inMemoryStore) getRoute(key string) (*model.Route, error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -196,7 +196,7 @@ func (s *InMemoryStore) getRoute(key string) (*model.Route, error) {
 	return nil, errors.New(fmt.Sprintf("Route %s not found in store", key))
 }
 
-func (s *InMemoryStore) UpdateLastUse(domain string) error {
+func (s *inMemoryStore) UpdateLastUse(domain string) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -209,7 +209,7 @@ func (s *InMemoryStore) UpdateLastUse(domain string) error {
 	return errors.New(fmt.Sprintf("Route %s not found in store", domain))
 }
 
-func (s *InMemoryStore) DeleteRoute(id string) error {
+func (s *inMemoryStore) DeleteRoute(id string) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 

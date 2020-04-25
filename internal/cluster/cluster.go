@@ -1,9 +1,9 @@
 package cluster
 
-type ClusterInterface interface {
+type Interface interface {
 	ScaleUpDeployment(name, namespace string, timeout int) error
 
-	ScaleDownDeployments(namespace string, mustScaleDown func(name, namespace string) bool) []error
+	ScaleDownDeployments(namespace string, mustScaleDown func(name, namespace string) (bool, error)) []error
 
 	RunServicesEngine(
 		namespace string,

@@ -12,7 +12,7 @@ import (
 )
 
 func TestClusterClient_ScaleUpDeployment(t *testing.T) {
-	client := NewClusterClient(fake.NewSimpleClientset())
+	client := NewCluster(fake.NewSimpleClientset())
 
 	timeout := 1
 
@@ -33,7 +33,7 @@ func TestClusterClient_ScaleUpDeployment(t *testing.T) {
 }
 
 func TestClusterClient_ScaleDownDeployments(t *testing.T) {
-	client := NewClusterClient(fake.NewSimpleClientset())
+	client := NewCluster(fake.NewSimpleClientset())
 
 	// error - deployment is not in kubernetes
 	helper_assertAtLeastOneError(t, client.ScaleDownDeployments(dummyNamespaceName, helper_shouldScaleDown))
@@ -61,7 +61,7 @@ func TestClusterClient_ScaleDownDeployments(t *testing.T) {
 // TODO split this test function - too much sh** here
 // the `time.sleep` are here to wait for the informer to sync
 func TestClusterClient_RunServicesEngine(t *testing.T) {
-	client := NewClusterClient(fake.NewSimpleClientset())
+	client := NewCluster(fake.NewSimpleClientset())
 	client.servicesInformerResyncInterval = 2
 
 	store := fakeStore{store: map[string]string{}}

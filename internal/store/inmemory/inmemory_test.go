@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// we volontarily do not create the InMemoryStore globally so that each test are independent from each other
+// we volontarily do not create the inMemoryStore globally so that each test are independent from each other
 
 type upsertTestCaseStruct struct {
 	id, svc, port, deploy, ns string

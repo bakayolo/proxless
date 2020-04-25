@@ -3,6 +3,7 @@ package config
 import (
 	_ "github.com/joho/godotenv/autoload"
 	"github.com/rs/zerolog/log"
+	"kube-proxless/internal/logger"
 	"os"
 	"strconv"
 )
@@ -13,38 +14,47 @@ var (
 	MaxConsPerHost             int
 	Namespace                  string
 	ServerlessTTL              int
-	DeploymentReadinessTimeout string
+	DeploymentReadinessTimeout int
 )
 
 func LoadEnvVars() {
 	KubeConfigPath = os.Getenv("KUBE_CONFIG_PATH")
 
-	Port = parseString("PORT", "80")
-	MaxConsPerHost = parseInt("MAX_CONS_PER_HOST", "10000")
+	Port = getString("PORT", "80")
+	MaxConsPerHost = getInt("MAX_CONS_PER_HOST", 10000)
 
 	Namespace = os.Getenv("NAMESPACE")
 
-	ServerlessTTL = parseInt("SERVERLESS_TTL_SECONDS", "30")
-	DeploymentReadinessTimeout = parseString("DEPLOYMENT_READINESS_TIMEOUT_SECONDS", "30")
+	ServerlessTTL = getInt("SERVERLESS_TTL_SECONDS", 30)
+	DeploymentReadinessTimeout = getInt("DEPLOYMENT_READINESS_TIMEOUT_SECONDS", 30)
 }
 
-func parseString(key, defaultValue string) string {
-	value := os.Getenv(key)
-
-	if value == "" && defaultValue == "" {
-		log.Panic().Msgf("Could not find env var: %v", key)
-	} else if value == "" {
-		value = defaultValue
+func getString(key, fallback string) string {
+	var result string
+	if os.Getenv(key) != "" {
+		result = os.Getenv(key)
+	} else {
+		result = fallback
 	}
-	log.Info().Msgf("Successfully loaded env var: %v=%v", key, value)
-	return value
+
+	logger.Debugf("Successfully loaded env var: %s=%v", key, result)
+
+	return result
 }
 
-func parseInt(key, defaultValue string) int {
-	intValue, err := strconv.Atoi(parseString(key, defaultValue))
-	if err != nil {
-		log.Panic().Err(err).Msgf("%v should be an integer", key)
+func getInt(key string, fallback int) int {
+	var result int
+	if os.Getenv(key) != "" {
+		intVal, err := strconv.Atoi(os.Getenv(key))
+		if err != nil {
+			log.Panic().Err(err).Msgf("error parsing int from env var: %s", key)
+		}
+		result = intVal
+	} else {
+		result = fallback
 	}
 
-	return intValue
+	log.Debug().Msgf("Successfully loaded env var: %s=%v", key, result)
+
+	return result
 }

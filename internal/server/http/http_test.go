@@ -3,15 +3,12 @@ package http
 import (
 	"fmt"
 	"github.com/valyala/fasthttp"
+	"kube-proxless/internal/cluster/fake"
 	"kube-proxless/internal/config"
+	"kube-proxless/internal/controller"
+	"kube-proxless/internal/store/inmemory"
 	"testing"
 )
-
-var server = HTTPServer{
-	controller: &mockController{},
-	client:     &mockFastHTTP{},
-	host:       "",
-}
 
 func TestNewHTTPServer(t *testing.T) {
 	HTTPServer := NewHTTPServer(nil)
@@ -23,21 +20,30 @@ func TestNewHTTPServer(t *testing.T) {
 }
 
 func TestHTTPServer_Run(t *testing.T) {
+	server := NewHTTPServer(controller.NewController(inmemory.NewInMemoryStore(), fake.NewCluster()))
+	server.client = &mockFastHTTP{}
+
 	// make sure it does not panic
 	server.Run()
 }
 
 func TestHTTPServer_requestHandler(t *testing.T) {
+	store := inmemory.NewInMemoryStore()
+	server := NewHTTPServer(controller.NewController(store, fake.NewCluster()))
+
 	testCases := []struct {
 		host       string
 		doMustFail bool
 		want       int
 	}{
 		{"", false, 404},
-		{"mock", false, 200},
-		{"mock", true, 500},
-		{"err", true, 500}, // fail upscaling
+		{"mock.io", false, 200},
+		{"mock.io", true, 500},
 	}
+
+	// add route in the store
+	_ = store.UpsertStore(
+		"mock-id", "mock-svc", "", "mock-deploy", "mock-ns", []string{"mock.io"})
 
 	for _, tc := range testCases {
 		req := fasthttp.AcquireRequest()
@@ -49,8 +55,8 @@ func TestHTTPServer_requestHandler(t *testing.T) {
 		server.requestHandler(ctx)
 
 		if ctx.Response.StatusCode() != tc.want {
-			t.Errorf("requestHandler(); statusCode = %d; want %d",
-				ctx.Response.StatusCode(), tc.want)
+			t.Errorf("requestHandler(%s); statusCode = %d; want %d",
+				tc.host, ctx.Response.StatusCode(), tc.want)
 		}
 
 		fasthttp.ReleaseRequest(req)
@@ -61,7 +67,7 @@ func TestHTTPServer_forward404Error(t *testing.T) {
 	ctx := &fasthttp.RequestCtx{
 		Response: fasthttp.Response{},
 	}
-	server.forward404Error(ctx, nil, "test")
+	forward404Error(ctx, nil, "test")
 
 	want := 404
 
@@ -82,7 +88,7 @@ func TestHTTPServer_forwardRequest(t *testing.T) {
 	res.SetStatusCode(statusCodeWant)
 	res.SetBodyString(bodyWant)
 
-	server.forwardRequest(ctx, res)
+	forwardRequest(ctx, res)
 
 	if statusCodeGot := ctx.Response.StatusCode(); statusCodeGot != statusCodeWant {
 		t.Errorf("forwardRequest(); status code == %d but must be %d", statusCodeGot, statusCodeWant)
@@ -97,7 +103,7 @@ func TestHTTPServer_forwardError(t *testing.T) {
 	ctx := &fasthttp.RequestCtx{
 		Response: fasthttp.Response{},
 	}
-	server.forwardError(ctx, nil)
+	forwardError(ctx, nil)
 
 	want := 500
 

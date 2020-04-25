@@ -126,8 +126,8 @@ func helper_assertNoError(t *testing.T, errs []error) {
 	}
 }
 
-func helper_shouldScaleDown(_, _ string) bool {
-	return true
+func helper_shouldScaleDown(_, _ string) (bool, error) {
+	return true, nil
 }
 
 type fakeStore struct {

@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func upsertStoreHelper(testCases []upsertTestCaseStruct, t *testing.T, s *InMemoryStore) {
+func upsertStoreHelper(testCases []upsertTestCaseStruct, t *testing.T, s *inMemoryStore) {
 	for _, tc := range testCases {
 		errGot := s.UpsertStore(tc.id, tc.svc, tc.port, tc.deploy, tc.ns, tc.domains)
 
@@ -23,7 +23,7 @@ func upsertStoreHelper(testCases []upsertTestCaseStruct, t *testing.T, s *InMemo
 	}
 }
 
-func upsertStoreGetRouteHelper(id, key string, t *testing.T, s *InMemoryStore) {
+func upsertStoreGetRouteHelper(id, key string, t *testing.T, s *inMemoryStore) {
 	_, err := s.getRoute(key)
 
 	if err != nil {
