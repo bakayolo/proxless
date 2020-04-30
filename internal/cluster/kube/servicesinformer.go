@@ -103,6 +103,7 @@ func addServiceToStore(
 		if err != nil {
 			logger.Errorf(err, "Error labelling deployment %s.%s", deployName, svc.Namespace)
 			// do not return here - we don't wanna break the proxy forwarding
+			// it will be relabel after the informer resync
 		}
 
 		port := getPortFromServicePorts(svc.Spec.Ports)
@@ -126,7 +127,7 @@ func removeServiceFromStore(
 		deployName := svc.Annotations[cluster.AnnotationServiceDeployKey]
 
 		// we don't process the error here - the deployment might have been delete with the service
-		_, _ = unlabelDeployment(clientset, deployName, svc.Namespace)
+		_, _ = removeDeploymentLabel(clientset, deployName, svc.Namespace)
 
 		err := deleteRouteFromStore(string(svc.UID))
 
@@ -148,10 +149,10 @@ func updateServiceInStore(
 		oldDeployName := oldSvc.Annotations[cluster.AnnotationServiceDeployKey]
 
 		if oldDeployName != newSvc.Annotations[cluster.AnnotationServiceDeployKey] {
-			_, err := unlabelDeployment(clientset, oldDeployName, oldSvc.Namespace)
+			_, err := removeDeploymentLabel(clientset, oldDeployName, oldSvc.Namespace)
 			if err != nil {
 				log.Error().Err(err).Msgf(
-					"error unlabelling deployment %s.%s", oldDeployName, oldSvc.Namespace)
+					"error remove proxless label from deployment %s.%s", oldDeployName, oldSvc.Namespace)
 			}
 		}
 

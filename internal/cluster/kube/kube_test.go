@@ -98,7 +98,7 @@ func TestClusterClient_RunServicesEngine(t *testing.T) {
 			randomDeploy.Labels, labelsWant)
 	}
 
-	// must unlabel the other deployment
+	// must remove the label from the other deployment
 	service.Annotations[cluster.AnnotationServiceDeployKey] = dummyProxlessName
 	helper_updateService(t, client.clientSet, service)
 	time.Sleep(1 * time.Second)
@@ -107,7 +107,8 @@ func TestClusterClient_RunServicesEngine(t *testing.T) {
 		t.Errorf("RunServicesEngine(); labels must be removed; labels = %s", randomDeploy.Labels)
 	}
 
-	// must remove the service from the store and unlabel the deployment if the service is not proxless compatible anymore
+	// must remove the service from the store and remove the label from the deployment
+	// if the service is not proxless compatible anymore
 	service.Annotations = map[string]string{}
 	helper_updateService(t, client.clientSet, service)
 	time.Sleep(1 * time.Second)
@@ -119,7 +120,8 @@ func TestClusterClient_RunServicesEngine(t *testing.T) {
 		t.Errorf("RunServicesEngine(); the service must be removed from the store")
 	}
 
-	// must remove the service from the store and unlabel the deployment if the service is deleted from kubernetes
+	// must remove the service from the store and remove the label from the deployment
+	// if the service is deleted from kubernetes
 	service.Annotations = map[string]string{
 		cluster.AnnotationServiceDomainKey: "dummy.io",
 		cluster.AnnotationServiceDeployKey: dummyNonProxlessName,

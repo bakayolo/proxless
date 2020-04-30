@@ -130,7 +130,7 @@ func labelDeployment(clientSet kubernetes.Interface, name, namespace string) (*a
 	return updateDeployment(clientSet, deploy, namespace)
 }
 
-func unlabelDeployment(clientSet kubernetes.Interface, name, namespace string) (*appsv1.Deployment, error) {
+func removeDeploymentLabel(clientSet kubernetes.Interface, name, namespace string) (*appsv1.Deployment, error) {
 	deploy, err := getDeployment(clientSet, name, namespace)
 
 	if err != nil {

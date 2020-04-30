@@ -119,3 +119,11 @@ func CompareMap(m1, m2 map[string]string) bool {
 
 	return true
 }
+
+func ConvertStringParamsToInterface(params []string) []interface{} {
+	v := make([]interface{}, len(params))
+	for i, p := range params {
+		v[i] = p
+	}
+	return v
+}

@@ -4,6 +4,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/rs/zerolog/pkgerrors"
+	"kube-proxless/internal/utils"
 	"os"
 	"strings"
 )
@@ -32,29 +33,21 @@ func InitLogger() {
 }
 
 func Errorf(err error, msg string, params ...string) {
-	v := convertStringParamsToInterface(params)
+	v := utils.ConvertStringParamsToInterface(params)
 	log.Error().Err(err).Msgf(msg, v...)
 }
 
 func Panicf(err error, msg string, params ...string) {
-	v := convertStringParamsToInterface(params)
+	v := utils.ConvertStringParamsToInterface(params)
 	log.Panic().Err(err).Msgf(msg, v...)
 }
 
 func Debugf(msg string, params ...string) {
-	v := convertStringParamsToInterface(params)
+	v := utils.ConvertStringParamsToInterface(params)
 	log.Debug().Msgf(msg, v...)
 }
 
 func Infof(msg string, params ...string) {
-	v := convertStringParamsToInterface(params)
+	v := utils.ConvertStringParamsToInterface(params)
 	log.Info().Msgf(msg, v...)
-}
-
-func convertStringParamsToInterface(params []string) []interface{} {
-	v := make([]interface{}, len(params))
-	for i, p := range params {
-		v[i] = p
-	}
-	return v
 }

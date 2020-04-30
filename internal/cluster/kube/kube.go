@@ -32,20 +32,20 @@ func NewKubeClient(kubeConfigPath string) kubernetes.Interface {
 	return kubernetes.NewForConfigOrDie(kubeConf)
 }
 
-func (c *kubeCluster) ScaleUpDeployment(name, namespace string, timeout int) error {
-	return scaleUpDeployment(c.clientSet, name, namespace, timeout)
+func (k *kubeCluster) ScaleUpDeployment(name, namespace string, timeout int) error {
+	return scaleUpDeployment(k.clientSet, name, namespace, timeout)
 }
 
-func (c *kubeCluster) ScaleDownDeployments(
+func (k *kubeCluster) ScaleDownDeployments(
 	namespace string, mustScaleDown func(deployName, namespace string) (bool, error)) []error {
-	return scaleDownDeployments(c.clientSet, namespace, mustScaleDown)
+	return scaleDownDeployments(k.clientSet, namespace, mustScaleDown)
 }
 
-func (c *kubeCluster) RunServicesEngine(
+func (k *kubeCluster) RunServicesEngine(
 	namespace string,
 	upsertStore func(id, name, port, deployName, namespace string, domains []string) error,
 	deleteRouteFromStore func(id string) error,
 ) {
 	// TODO make the resync is configurable
-	runServicesInformer(c.clientSet, namespace, c.servicesInformerResyncInterval, upsertStore, deleteRouteFromStore)
+	runServicesInformer(k.clientSet, namespace, k.servicesInformerResyncInterval, upsertStore, deleteRouteFromStore)
 }

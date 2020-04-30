@@ -1,6 +1,6 @@
 # How works proxless
 
-## Wording
+## Definitions
 
 - `service` == `kubernetes service`
 - `deployment` == `kubernetes deployment`
@@ -89,7 +89,7 @@ Upon creating/modifying a service, the services engine will
         - if the deployment does not exist, it will still add the information to the store so that the forwarding still works
         - it resyncs all the services every 30 seconds so the deployment can be picked up later
 
-Upon deleting a service, the service engine will delete all its route information from the store and unlabel its deployment.
+Upon deleting a service, the service engine will delete all its route information from the store and remove the proxless label from its deployment.
 
 The logic of the services engine is available in [internal/cluster/kube/servicesinformer.go](../internal/cluster/kube/servicesinformer.go).
 

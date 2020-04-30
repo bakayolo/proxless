@@ -2,6 +2,7 @@ package http
 
 import (
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"github.com/valyala/fasthttp"
 	"kube-proxless/internal/cluster/fake"
 	"kube-proxless/internal/config"
@@ -54,10 +55,7 @@ func TestHTTPServer_requestHandler(t *testing.T) {
 		server.client = &mockFastHTTP{doMustFail: tc.doMustFail}
 		server.requestHandler(ctx)
 
-		if ctx.Response.StatusCode() != tc.want {
-			t.Errorf("requestHandler(%s); statusCode = %d; want %d",
-				tc.host, ctx.Response.StatusCode(), tc.want)
-		}
+		assert.Equal(t, ctx.Response.StatusCode(), tc.want, fmt.Sprintf("requestHandler(%s);", tc.host))
 
 		fasthttp.ReleaseRequest(req)
 	}
@@ -71,9 +69,7 @@ func TestHTTPServer_forward404Error(t *testing.T) {
 
 	want := 404
 
-	if got := ctx.Response.StatusCode(); got != want {
-		t.Errorf("forward404Error(); status code == %d but must be %d", got, want)
-	}
+	assert.Equal(t, ctx.Response.StatusCode(), want)
 }
 
 func TestHTTPServer_forwardRequest(t *testing.T) {
@@ -90,13 +86,9 @@ func TestHTTPServer_forwardRequest(t *testing.T) {
 
 	forwardRequest(ctx, res)
 
-	if statusCodeGot := ctx.Response.StatusCode(); statusCodeGot != statusCodeWant {
-		t.Errorf("forwardRequest(); status code == %d but must be %d", statusCodeGot, statusCodeWant)
-	}
+	assert.Equal(t, ctx.Response.StatusCode(), statusCodeWant)
 
-	if bodyGot := string(ctx.Response.Body()); bodyGot != bodyWant {
-		t.Errorf("forwardRequest(); body == %s but must be %s", bodyGot, bodyWant)
-	}
+	assert.Equal(t, string(ctx.Response.Body()), bodyWant)
 }
 
 func TestHTTPServer_forwardError(t *testing.T) {

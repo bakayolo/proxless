@@ -57,22 +57,22 @@ func Test_labelDeployment(t *testing.T) {
 	}
 }
 
-func Test_unlabelDeployment(t *testing.T) {
+func Test_removeDeploymentLabel(t *testing.T) {
 	clientSet := fake.NewSimpleClientset()
 
 	// error - deployment is not in kubernetes
-	_, err := unlabelDeployment(clientSet, dummyProxlessName, dummyNamespaceName)
+	_, err := removeDeploymentLabel(clientSet, dummyProxlessName, dummyNamespaceName)
 	assert.Error(t, err)
 
 	helper_createNamespace(t, clientSet)
 	deploy := helper_createProxlessCompatibleDeployment(t, clientSet)
 
 	// no error - deployment in kubernetes
-	deploy, err = unlabelDeployment(clientSet, dummyProxlessName, dummyNamespaceName)
+	deploy, err = removeDeploymentLabel(clientSet, dummyProxlessName, dummyNamespaceName)
 	assert.NoError(t, err)
 
 	wantLabels := map[string]string{}
 	if !utils.CompareMap(deploy.Labels, wantLabels) {
-		t.Errorf("unlabelDeployment(); labels = %s, wantLabels = %s", deploy.Labels, wantLabels)
+		t.Errorf("removeDeploymentLabel(); labels = %s, wantLabels = %s", deploy.Labels, wantLabels)
 	}
 }

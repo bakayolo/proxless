@@ -109,7 +109,7 @@ func TestNewRoute(t *testing.T) {
 			t.Errorf("CreateRoute(tc %s) = %v, errWanted = %t", tc.id, errGot, tc.errWanted)
 		}
 
-		if errGot == nil && !compareRoute(got, tc.want) {
+		if errGot == nil && !got.isEqual(tc.want) {
 			t.Errorf("CreateRoute(tc %s) - got and want does not match", tc.id)
 		}
 	}
