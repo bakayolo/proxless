@@ -2,78 +2,59 @@ package config
 
 import (
 	_ "github.com/joho/godotenv/autoload"
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"kube-proxless/internal/logger"
 	"os"
 	"strconv"
-	"strings"
 )
 
 var (
-	KubeConfigPath         string
-	LogLevel               string
-	Port                   string
-	MaxConsPerHost         int
-	Namespace              string
-	ServerlessTTL          int
-	ServerlessPollInterval int
-	ReadinessPollTimeout   string
-	ReadinessPollInterval  string
+	KubeConfigPath             string
+	Port                       string
+	MaxConsPerHost             int
+	Namespace                  string
+	ServerlessTTL              int
+	DeploymentReadinessTimeout int
 )
 
-func LoadConfig() {
+func LoadEnvVars() {
 	KubeConfigPath = os.Getenv("KUBE_CONFIG_PATH")
 
-	LogLevel = parseString("LOG_LEVEL", "DEBUG")
-
-	Port = parseString("PORT", "80")
-	MaxConsPerHost = parseInt("MAX_CONS_PER_HOST", "10000")
+	Port = getString("PORT", "80")
+	MaxConsPerHost = getInt("MAX_CONS_PER_HOST", 10000)
 
 	Namespace = os.Getenv("NAMESPACE")
 
-	ServerlessTTL = parseInt("SERVERLESS_TTL_SECONDS", "30")
-	ServerlessPollInterval = parseInt("SERVERLESS_POLL_INTERVAL_SECONDS", "5")
-	ReadinessPollTimeout = parseString("READINESS_POLL_TIMEOUT_SECONDS", "30")
-	ReadinessPollInterval = parseString("READINESS_POLL_INTERVAL_SECONDS", "1")
+	ServerlessTTL = getInt("SERVERLESS_TTL_SECONDS", 30)
+	DeploymentReadinessTimeout = getInt("DEPLOYMENT_READINESS_TIMEOUT_SECONDS", 30)
 }
 
-func parseString(key, defaultValue string) string {
-	value := os.Getenv(key)
-
-	if value == "" && defaultValue == "" {
-		log.Panic().Msgf("Could not find env var: %v", key)
-	} else if value == "" && defaultValue != "" {
-		value = defaultValue
+func getString(key, fallback string) string {
+	var result string
+	if os.Getenv(key) != "" {
+		result = os.Getenv(key)
+	} else {
+		result = fallback
 	}
-	log.Info().Msgf("Successfully loaded env var: %v=%v", key, value)
-	return value
+
+	logger.Debugf("Successfully loaded env var: %s=%v", key, result)
+
+	return result
 }
 
-func parseInt(key, defaultValue string) int {
-	intValue, err := strconv.Atoi(parseString(key, defaultValue))
-	if err != nil {
-		log.Panic().Err(err).Msgf("%v should be an integer", key)
+func getInt(key string, fallback int) int {
+	var result int
+	if os.Getenv(key) != "" {
+		intVal, err := strconv.Atoi(os.Getenv(key))
+		if err != nil {
+			log.Panic().Err(err).Msgf("error parsing int from env var: %s", key)
+		}
+		result = intVal
+	} else {
+		result = fallback
 	}
 
-	return intValue
-}
+	log.Debug().Msgf("Successfully loaded env var: %s=%v", key, result)
 
-func InitLogger() zerolog.Level {
-	switch strings.ToUpper(LogLevel) {
-	case "DEBUG":
-		zerolog.SetGlobalLevel(zerolog.DebugLevel)
-	case "INFO":
-		zerolog.SetGlobalLevel(zerolog.InfoLevel)
-	case "WARN":
-		zerolog.SetGlobalLevel(zerolog.WarnLevel)
-	case "ERROR":
-		zerolog.SetGlobalLevel(zerolog.ErrorLevel)
-	case "FATAL":
-		zerolog.SetGlobalLevel(zerolog.FatalLevel)
-	case "PANIC":
-		zerolog.SetGlobalLevel(zerolog.PanicLevel)
-	default:
-		zerolog.SetGlobalLevel(zerolog.InfoLevel)
-	}
-	return zerolog.GlobalLevel()
+	return result
 }
