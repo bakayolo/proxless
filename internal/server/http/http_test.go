@@ -43,7 +43,7 @@ func TestHTTPServer_requestHandler(t *testing.T) {
 	}
 
 	// add route in the memory
-	_ = memory.UpsertMemoryMap(
+	_ = mem.UpsertMemoryMap(
 		"mock-id", "mock-svc", "", "mock-deploy", "mock-ns", []string{"mock.io"})
 
 	for _, tc := range testCases {
