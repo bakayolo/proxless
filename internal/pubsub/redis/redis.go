@@ -31,6 +31,7 @@ func NewRedisPubSub(redisURL string) pubsub.Interface {
 
 	return &RedisClient{
 		client: client,
+		m:      make(map[string]*redis.PubSub),
 	}
 }
 
