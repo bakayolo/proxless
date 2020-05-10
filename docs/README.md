@@ -13,7 +13,7 @@ Proxless works with 4 core concepts:
 - the **proxy**, responsible for forwarding the requests to the correct back end and scaling up the deployment if needed.
 - the **services engine**, responsible for retrieving the configuration from the services and configuring the deployments.
 - the **downscaler**, responsible for downscaling the deployments when they are not used.
-- the **pubsub** system is used to update the latest used time for each request on each proxless replicas.
+- the **pubsub** system (optional) is used to synchronize the `lastUsed` time for each request on each proxless replicas.
 
 ### Memory
 
@@ -86,10 +86,10 @@ Every `N` seconds (configurable), the downscaler will
 
 The logic of the downscaler is available in the `RunDownScaler` func from [internal/controller/controller.go](../internal/controller/controller.go).
 
-### PubSub
+### PubSub (optional)
 
-The pubsub system is used to update the latest used time for each request on each proxless replicas.  
-It is optional and currently use Redis. Without the pubsub, proxless is not fully HA.  
+The pubsub system is used to synchronize the `lastUsed` time for each request on each proxless replicas.
+It is optional and currently use Redis.
 
 - Upon receiving a new proxless compatible service (the services engine), every replica subscribe to a channel corresponding to the service id in the pubsub system.  
 - When a service is being called (the proxy), proxless will `PUBLISH` the `lastUsed` time attached to the service id to the pubsub system.

@@ -12,7 +12,7 @@ port: 80
 
 ## If true, a Role will be created - Proxless is only working within the namespace
 ## If false, a ClusterRole will be created - Proxless is available globally
-namespaceScoped: true
+namespaceScoped: false
 
 replicas: 2
 
