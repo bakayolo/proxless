@@ -1,12 +1,11 @@
-{{- if .Values.namespaceScoped }}
+{{- if not .Values.namespaceScoped }}
 apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
+kind: ClusterRoleBinding
 metadata:
   name: {{ .Release.Name }}
-  namespace: {{ .Release.Namespace }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
-  kind: Role
+  kind: ClusterRole
   name: {{ .Release.Name }}
 subjects:
   - kind: ServiceAccount
@@ -14,22 +13,20 @@ subjects:
     namespace: {{ .Release.Namespace }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
+kind: ClusterRole
 metadata:
   name: {{ .Release.Name }}
-  namespace: {{ .Release.Namespace }}
 rules:
   - apiGroups:
       - ""
     resources:
       - services
     verbs:
+      - get
+      - list
       - watch
       - create
-      - get
-      - update
       - delete
-      - list
   - apiGroups:
       - "apps"
     resources:

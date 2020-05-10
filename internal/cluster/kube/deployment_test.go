@@ -9,7 +9,7 @@ import (
 )
 
 func Test_scaleUpDeployment(t *testing.T) {
-	TestClusterClient_ScaleUpDeployment(t)
+	// TestClusterClient_ScaleUpDeployment(t)
 }
 
 func Test_waitForDeploymentAvailable(t *testing.T) {
@@ -34,7 +34,7 @@ func Test_waitForDeploymentAvailable(t *testing.T) {
 }
 
 func Test_scaleDownDeployments(t *testing.T) {
-	TestClusterClient_ScaleDownDeployments(t)
+	// TestClusterClient_ScaleDownDeployments(t)
 }
 
 func Test_labelDeployment(t *testing.T) {

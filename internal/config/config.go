@@ -2,19 +2,20 @@ package config
 
 import (
 	_ "github.com/joho/godotenv/autoload"
-	"github.com/rs/zerolog/log"
 	"kube-proxless/internal/logger"
 	"os"
 	"strconv"
 )
 
 var (
-	KubeConfigPath             string
-	Port                       string
-	MaxConsPerHost             int
-	Namespace                  string
-	ServerlessTTL              int
-	DeploymentReadinessTimeout int
+	KubeConfigPath                    string
+	Port                              string
+	MaxConsPerHost                    int
+	ProxlessNamespace                 string
+	ProxlessService                   string
+	NamespaceScope                    string
+	ServerlessTTLSeconds              int
+	DeploymentReadinessTimeoutSeconds int
 )
 
 func LoadEnvVars() {
@@ -23,10 +24,15 @@ func LoadEnvVars() {
 	Port = getString("PORT", "80")
 	MaxConsPerHost = getInt("MAX_CONS_PER_HOST", 10000)
 
-	Namespace = os.Getenv("NAMESPACE")
+	ProxlessNamespace = getString("PROXLESS_NAMESPACE", "proxless")
+	ProxlessService = getString("PROXLESS_SERVICE", "proxless")
 
-	ServerlessTTL = getInt("SERVERLESS_TTL_SECONDS", 30)
-	DeploymentReadinessTimeout = getInt("DEPLOYMENT_READINESS_TIMEOUT_SECONDS", 30)
+	if getBool("NAMESPACE_SCOPED", true) {
+		NamespaceScope = ProxlessNamespace
+	}
+
+	ServerlessTTLSeconds = getInt("SERVERLESS_TTL_SECONDS", 30)
+	DeploymentReadinessTimeoutSeconds = getInt("DEPLOYMENT_READINESS_TIMEOUT_SECONDS", 30)
 }
 
 func getString(key, fallback string) string {
@@ -47,14 +53,31 @@ func getInt(key string, fallback int) int {
 	if os.Getenv(key) != "" {
 		intVal, err := strconv.Atoi(os.Getenv(key))
 		if err != nil {
-			log.Panic().Err(err).Msgf("error parsing int from env var: %s", key)
+			logger.Panicf(err, "error parsing int from env var: %s", key)
 		}
 		result = intVal
 	} else {
 		result = fallback
 	}
 
-	log.Debug().Msgf("Successfully loaded env var: %s=%v", key, result)
+	logger.Debugf("Successfully loaded env var: %s=%v", key, result)
+
+	return result
+}
+
+func getBool(key string, fallback bool) bool {
+	var result bool
+	if os.Getenv(key) != "" {
+		boolVal, err := strconv.ParseBool(os.Getenv(key))
+		if err != nil {
+			logger.Panicf(err, "error parsing bool from env var: %s", key)
+		}
+		result = boolVal
+	} else {
+		result = fallback
+	}
+
+	logger.Debugf("Successfully loaded env var: %s=%v", key, result)
 
 	return result
 }

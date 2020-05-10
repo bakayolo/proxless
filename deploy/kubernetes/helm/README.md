@@ -1,6 +1,6 @@
 # Proxless
 
-[proxless](https://github.com/bappr/kube-proxless) is an opensource proxy that use services annotation to scale up and down your deployments when they are not used.
+[proxless](https://github.com/bappr/kube-proxless) is an opensource proxy that use services annotations to scale up and down your deployments when they are not used.
 
 To use it, add the `proxless/domains` and the `proxless/deployment` annotation to your Service resources.
 
@@ -18,7 +18,7 @@ Tested with
 To install the chart with the release name `my-release`:
 
 ```console
-$ helm install --name my-release ./helm
+$ helm install --name my-release .
 ```
 
 The command deploys proxless on the Kubernetes cluster in the default configuration. The [configuration](#configuration) section lists the parameters that can be configured during installation.
@@ -59,7 +59,7 @@ Parameter | Description | Default
 
 These parameters can be passed via Helm's `--set` option
 ```console
-$ helm install ./helm --name my-release \
+$ helm install . --name my-release \
     --set service.type=LoadBalancer
 ```
 
@@ -68,5 +68,5 @@ _Notes: Enabling `ingress` is useless since it will proxy nowhere_
 Alternatively, a YAML file that specifies the values for the parameters can be provided while installing the chart. For example,
 
 ```console
-$ helm install ./helm --name my-release -f values.yaml
+$ helm install . --name my-release -f values.yaml
 ```

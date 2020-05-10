@@ -72,10 +72,13 @@ func TestClusterClient_RunServicesEngine(t *testing.T) {
 	// TODO check how we wanna deal with closing the channel and stopping the routine
 	// We could use a context https://github.com/kubernetes/client-go/blob/master/examples/fake-client/main_test.go
 	// but not sure if it is worth it
-	go client.RunServicesEngine(dummyNamespaceName, store.helper_upsertStore, store.helper_deleteRouteFromStore)
+	go client.RunServicesEngine(
+		dummyNamespaceName, dummyProxlessName, dummyProxlessName,
+		store.helper_upsertStore, store.helper_deleteRouteFromStore)
 
 	// don't store random services
 	helper_createRandomService(t, client.clientSet)
+	time.Sleep(1 * time.Second)
 	if len(store.store) > 0 {
 		t.Errorf("RunServicesEngine(); must not store random service information")
 	}
@@ -86,6 +89,9 @@ func TestClusterClient_RunServicesEngine(t *testing.T) {
 	if _, ok := store.store[string(service.UID)]; !ok {
 		t.Errorf("RunServicesEngine(); service not added in store")
 	}
+	_, err :=
+		client.clientSet.CoreV1().Services(dummyNamespaceName).Get(genServiceToAppName(dummyProxlessName), v1.GetOptions{})
+	assert.NoError(t, err)
 
 	// the deployment was not here during creation of the service so proxless label has not been added
 	// however the services informer resync must label it
@@ -119,6 +125,9 @@ func TestClusterClient_RunServicesEngine(t *testing.T) {
 	if len(store.store) > 0 {
 		t.Errorf("RunServicesEngine(); the service must be removed from the store")
 	}
+	_, err =
+		client.clientSet.CoreV1().Services(dummyNamespaceName).Get(genServiceToAppName(dummyProxlessName), v1.GetOptions{})
+	assert.Error(t, err)
 
 	// must remove the service from the store and remove the label from the deployment
 	// if the service is deleted from kubernetes
@@ -136,4 +145,7 @@ func TestClusterClient_RunServicesEngine(t *testing.T) {
 	if len(store.store) > 0 {
 		t.Errorf("RunServicesEngine(); the service must be removed from the store")
 	}
+	_, err =
+		client.clientSet.CoreV1().Services(dummyNamespaceName).Get(genServiceToAppName(dummyProxlessName), v1.GetOptions{})
+	assert.Error(t, err)
 }

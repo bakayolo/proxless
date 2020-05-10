@@ -10,13 +10,72 @@
 Proxless is provided in alpha mode.  
 Using it on your production cluster is done at your own risks.
 
-## Installation
+## In 1 minute
 
-A helm chart is available [here](helm)
+Proxless is a simple proxy written in golang and consume a minimum of resources.  
+You don't need to run anything other than the proxless deployment.
 
-## How does it work
+Proxless looks for the services in the cluster that have a specific annotation and scale up and down their associated deployment. 
 
-See doc [here](docs)
+Check the [documentation](docs) for more information.
+
+## Namespace scoped or cluster wide
+ 
+- **Namespace scoped**
+    - env var `NAMESPACE_SCOPED` must be `true` - proxless will only look for services within its namespace.
+    - a `Role` is required.  See [here](deploy/kubernetes/helm/templates/role.yaml).
+- **Cluster wide**
+    - env var `NAMESPACE_SCOPED` is `false - proxless will look for any services in the cluster.
+    - a `ClusterRole` is required. See [here](deploy/kubernetes/helm/templates/clusterrole.yaml).
+
+## Deploy Proxless
+
+### Namespace scoped
+
+```shell script
+$ kubectl apply -f deploy/kubernetes/kubectl/proxless-scoped.yaml
+```
+
+### Cluster wide
+
+_Notes: it will create a `proxless` namespace and deploy proxless there_
+
+```shell script
+$ kubectl apply -f deploy/kubernetes/kubectl/proxless-global.yaml
+```
+
+### Helm
+
+You can use our [helm chart](deploy/kubernetes/helm/README.md) for a more configurable approach.
+
+## Test it
+
+Deploy the [example](example/kubernetes/example.yaml).  
+It's a basic nginx pod doing a `proxy_pass` to a hello-world microservice pod.
+
+```shell script
+$ kubectl apply -f example/kubernetes/example.yaml
+```
+
+Port-forward to your proxless deployment.
+
+```shell script
+$ kubectl port-forward svc/proxless 8080:80
+Forwarding from 127.0.0.1:8080 -> 80
+Forwarding from [::1]:8080 -> 80
+```
+
+Call it
+
+```shell script
+$ curl -H "Host: www.example.io" localhost:8080
+{"message":"Hello"}
+
+$ curl -H "Host: example.io" localhost:8080
+{"message":"Hello"}
+```
+
+More information [here](example/kubernetes/README.md)
 
 ## Development Setup
 

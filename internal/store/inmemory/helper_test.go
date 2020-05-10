@@ -24,7 +24,7 @@ func upsertStoreHelper(testCases []upsertTestCaseStruct, t *testing.T, s *inMemo
 }
 
 func upsertStoreGetRouteHelper(id, key string, t *testing.T, s *inMemoryStore) {
-	_, err := s.getRoute(key)
+	_, err := getRoute(s, key)
 
 	if err != nil {
 		t.Errorf("UpsertStore(%s); key %s not in s", id, key)

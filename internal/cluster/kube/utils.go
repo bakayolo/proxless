@@ -7,14 +7,29 @@ import (
 	"strings"
 )
 
-func genDomains(domains, name, namespace string) []string {
-	domainsArray := strings.Split(domains, ",")
+func genServiceToAppName(svcName string) string {
+	return fmt.Sprintf("%s-proxless", svcName)
+}
+
+func genDomains(domains, name, namespace string, namespaceScoped bool) []string {
+	svcName := genServiceToAppName(name)
+	var domainsArray []string
+	if domains != "" {
+		domainsArray = strings.Split(domains, ",")
+	}
 	domainsArray = append(domainsArray, fmt.Sprintf("%s.%s", name, namespace))
-	domainsArray = append(domainsArray, fmt.Sprintf("%s.%s.svc.kubeCluster.local", name, namespace))
+	domainsArray = append(domainsArray, fmt.Sprintf("%s.%s", svcName, namespace))
+	domainsArray = append(domainsArray, fmt.Sprintf("%s.%s.svc.cluster.local", name, namespace))
+	domainsArray = append(domainsArray, fmt.Sprintf("%s.%s.svc.cluster.local", svcName, namespace))
+
+	if namespaceScoped {
+		domainsArray = append(domainsArray, name)
+		domainsArray = append(domainsArray, svcName)
+	}
+
 	return domainsArray
 }
 
 func isAnnotationsProxlessCompatible(meta metav1.ObjectMeta) bool {
-	return metav1.HasAnnotation(meta, cluster.AnnotationServiceDomainKey) &&
-		metav1.HasAnnotation(meta, cluster.AnnotationServiceDeployKey)
+	return metav1.HasAnnotation(meta, cluster.AnnotationServiceDeployKey)
 }

@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"github.com/rs/zerolog/log"
 	"kube-proxless/internal/cluster"
 	"kube-proxless/internal/config"
 	"kube-proxless/internal/logger"
@@ -39,7 +38,7 @@ func (c *controller) UpdateLastUseInStore(domain string) error {
 }
 
 func (c *controller) ScaleUpDeployment(name, namespace string) error {
-	return c.cluster.ScaleUpDeployment(name, namespace, config.DeploymentReadinessTimeout)
+	return c.cluster.ScaleUpDeployment(name, namespace, config.DeploymentReadinessTimeoutSeconds)
 }
 
 func (c *controller) RunDownScaler(checkInterval int) {
@@ -65,26 +64,27 @@ func (c *controller) RunDownScaler(checkInterval int) {
 
 func scaleDownDeployments(c *controller) []error {
 	return c.cluster.ScaleDownDeployments(
-		config.Namespace,
-		func(deployName, namespace string) (bool, error) {
+		config.NamespaceScope,
+		func(deployName, namespace string) (bool, time.Duration, error) {
 			route, err := c.store.GetRouteByDeployment(deployName, namespace)
 
 			if err != nil {
 				logger.Errorf(err, "Could not get route %s.%s from store", deployName, namespace)
-				return false, err
+				return false, 0, err
 			}
 
-			timeIdle := time.Now().Sub(route.GetLastUsed()).Seconds()
-			if timeIdle >= float64(config.ServerlessTTL) {
-				return true, nil
+			timeIdle := time.Now().Sub(route.GetLastUsed())
+			// https://stackoverflow.com/a/41503910/5683655
+			if int64(timeIdle/time.Second) >= int64(config.ServerlessTTLSeconds) {
+				return true, timeIdle, nil
 			}
 
-			return false, nil
+			return false, timeIdle, nil
 		})
 }
 
 func (c *controller) RunServicesEngine() {
-	log.Info().Msgf("Starting Services Engine...")
+	logger.Infof("Starting Services Engine...")
 
 	defer func() {
 		if err := recover(); err != nil {
@@ -94,7 +94,9 @@ func (c *controller) RunServicesEngine() {
 	}()
 
 	c.cluster.RunServicesEngine(
-		config.Namespace,
+		config.NamespaceScope,
+		config.ProxlessService,
+		config.ProxlessNamespace,
 		func(id, name, port, deployName, namespace string, domains []string) error {
 			return c.store.UpsertStore(id, name, port, deployName, namespace, domains)
 		},

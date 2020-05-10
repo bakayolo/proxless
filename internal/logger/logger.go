@@ -4,7 +4,6 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/rs/zerolog/pkgerrors"
-	"kube-proxless/internal/utils"
 	"os"
 	"strings"
 )
@@ -28,26 +27,26 @@ func InitLogger() {
 		zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	}
 
-	log.Logger = log.With().Caller().Logger()
+	// log.Logger = log.With().Caller().Logger()
 	log.Info().Msgf("logger initialized with %s settings", zerolog.GlobalLevel())
 }
 
-func Errorf(err error, msg string, params ...string) {
-	v := utils.ConvertStringParamsToInterface(params)
-	log.Error().Err(err).Msgf(msg, v...)
+func Errorf(err error, msg string, params ...interface{}) {
+	log.Error().Err(err).Msgf(msg, params...)
 }
 
-func Panicf(err error, msg string, params ...string) {
-	v := utils.ConvertStringParamsToInterface(params)
-	log.Panic().Err(err).Msgf(msg, v...)
+func Panicf(err error, msg string, params ...interface{}) {
+	log.Panic().Err(err).Msgf(msg, params...)
 }
 
-func Debugf(msg string, params ...string) {
-	v := utils.ConvertStringParamsToInterface(params)
-	log.Debug().Msgf(msg, v...)
+func Fatalf(err error, msg string, params ...interface{}) {
+	log.Fatal().Err(err).Msgf(msg, params...)
 }
 
-func Infof(msg string, params ...string) {
-	v := utils.ConvertStringParamsToInterface(params)
-	log.Info().Msgf(msg, v...)
+func Debugf(msg string, params ...interface{}) {
+	log.Debug().Msgf(msg, params...)
+}
+
+func Infof(msg string, params ...interface{}) {
+	log.Info().Msgf(msg, params...)
 }

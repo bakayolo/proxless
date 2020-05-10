@@ -11,6 +11,7 @@ import (
 	"k8s.io/utils/pointer"
 	"kube-proxless/internal/cluster"
 	"testing"
+	"time"
 )
 
 const (
@@ -126,8 +127,8 @@ func helper_assertNoError(t *testing.T, errs []error) {
 	}
 }
 
-func helper_shouldScaleDown(_, _ string) (bool, error) {
-	return true, nil
+func helper_shouldScaleDown(_, _ string) (bool, time.Duration, error) {
+	return true, time.Now().Sub(time.Now()), nil
 }
 
 type fakeStore struct {

@@ -46,24 +46,30 @@ func scaleUpDeployment(clientSet kubernetes.Interface, name, namespace string, t
 		return err
 	}
 
-	deploy.Spec.Replicas = pointer.Int32Ptr(1) // TODO make this configurable
+	if *deploy.Spec.Replicas == 0 {
+		deploy.Spec.Replicas = pointer.Int32Ptr(1) // TODO make this configurable
 
-	if _, err := updateDeployment(clientSet, deploy, namespace); err != nil {
-		logger.Errorf(err, "Could not scale up the deployment %s.%s", name, namespace)
-		return err
+		if _, err := updateDeployment(clientSet, deploy, namespace); err != nil {
+			logger.Errorf(err, "Could not scale up the deployment %s.%s", name, namespace)
+			return err
+		} else {
+			return waitForDeploymentAvailable(clientSet, name, namespace, timeout)
+		}
 	} else {
-		return waitForDeploymentAvailable(clientSet, name, namespace, timeout)
+		return nil
 	}
 }
 
 func waitForDeploymentAvailable(clientSet kubernetes.Interface, name, namespace string, timeout int) error {
+	now := time.Now()
 	err := wait.PollImmediate(time.Second, time.Duration(timeout)*time.Second, func() (bool, error) {
 		if deploy, err := getDeployment(clientSet, name, namespace); err != nil {
 			logger.Errorf(err, "Could not get the deployment %s.%s", name, namespace)
 			return true, err
 		} else {
 			if deploy.Status.AvailableReplicas >= 1 { // TODO make this configurable
-				logger.Debugf("Deployment %s.%s scaled up successfully", name, namespace)
+				logger.Debugf("Deployment %s.%s scaled up successfully after %s",
+					name, namespace, time.Now().Sub(now))
 				return true, nil
 			} else {
 				logger.Debugf("Deployment %s.%s not ready yet", name, namespace)
@@ -76,26 +82,26 @@ func waitForDeploymentAvailable(clientSet kubernetes.Interface, name, namespace 
 
 func scaleDownDeployments(
 	kubeClient kubernetes.Interface,
-	namespace string,
-	mustScaleDown func(deployName, namespace string) (bool, error),
+	namespaceScope string,
+	mustScaleDown func(deployName, namespace string) (bool, time.Duration, error),
 ) []error {
 	labelSelector := metav1.ListOptions{
 		LabelSelector: fmt.Sprintf("%s=%s", cluster.LabelDeploymentProxless, "true"),
 	}
 
-	deploys, err := listDeployments(kubeClient, namespace, labelSelector)
+	deploys, err := listDeployments(kubeClient, namespaceScope, labelSelector)
 
 	var errs []error
 	if err != nil {
 		logger.Errorf(
 			err,
 			"Could not list deployments with label %s in namespace %s",
-			labelSelector.LabelSelector, namespace)
+			labelSelector.LabelSelector, namespaceScope)
 		errs = append(errs, err)
 	} else {
 		for _, deploy := range deploys {
 			if *deploy.Spec.Replicas > int32(0) {
-				scaleDown, _ := mustScaleDown(deploy.Name, deploy.Namespace)
+				scaleDown, timeIdle, _ := mustScaleDown(deploy.Name, deploy.Namespace)
 				if scaleDown {
 					deploy.Spec.Replicas = pointer.Int32Ptr(0)
 
@@ -104,7 +110,8 @@ func scaleDownDeployments(
 						logger.Errorf(err, "Could not scale down deployment %s.%s", deploy.Name, deploy.Namespace)
 						errs = append(errs, err)
 					} else {
-						logger.Debugf("Deployment %s.%s scaled down", deploy.Name, deploy.Namespace)
+						logger.Debugf("Deployment %s.%s scaled down after %s",
+							deploy.Name, deploy.Namespace, timeIdle)
 					}
 				}
 			}

@@ -63,3 +63,36 @@ func assertParseIntPanic(t *testing.T, key string, defaultValue int, mustPanic b
 
 	return getInt(key, defaultValue)
 }
+
+func Test_getBool(t *testing.T) {
+	env := "env"
+	testCases := []struct {
+		value              string
+		defaultValue, want bool
+		mustPanic          bool
+	}{
+		{"", true, true, false},
+		{"false", true, false, false},
+		{"something", true, true, true},
+	}
+
+	for _, tc := range testCases {
+		_ = os.Setenv(env, tc.value)
+		got := assertParseBoolPanic(t, env, tc.defaultValue, tc.mustPanic)
+
+		if !tc.mustPanic && got != tc.want {
+			t.Errorf("getBool(%s, %t) = %t; want = %t", env, tc.defaultValue, got, tc.want)
+		}
+	}
+}
+
+func assertParseBoolPanic(t *testing.T, key string, defaultValue, mustPanic bool) bool {
+	defer func() {
+		if r := recover(); (r != nil) != mustPanic {
+			t.Errorf("getBool(%s, %t); panic = %t; mustPanic = %t",
+				key, defaultValue, r != nil, mustPanic)
+		}
+	}()
+
+	return getBool(key, defaultValue)
+}
