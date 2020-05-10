@@ -1,13 +1,14 @@
-package inmemory
+package memory
 
 import (
 	"fmt"
 	"kube-proxless/internal/model"
 	"kube-proxless/internal/utils"
 	"testing"
+	"time"
 )
 
-// we volontarily do not create the inMemoryStore globally so that each test are independent from each other
+// we volontarily do not create the MemoryMap globally so that each test are independent from each other
 
 type upsertTestCaseStruct struct {
 	id, svc, port, deploy, ns string
@@ -15,8 +16,8 @@ type upsertTestCaseStruct struct {
 	errWanted                 bool
 }
 
-func TestInMemoryStore_UpsertStore_Create(t *testing.T) {
-	s := NewInMemoryStore()
+func TestMemoryMap_UpsertMap_Create(t *testing.T) {
+	s := NewMemoryMap()
 
 	// create route
 	testCases := []upsertTestCaseStruct{
@@ -29,11 +30,11 @@ func TestInMemoryStore_UpsertStore_Create(t *testing.T) {
 		{"createTestCase5", "svc5", "80", "deploy5", "ns5", nil, true},
 	}
 
-	upsertStoreHelper(testCases, t, s)
+	upsertMemoryMapHelper(testCases, t, s)
 }
 
-func TestInMemoryStore_UpsertStore_Update(t *testing.T) {
-	s := NewInMemoryStore()
+func TestMemoryMap_UpsertMemoryMap_Update(t *testing.T) {
+	s := NewMemoryMap()
 
 	testCases := []upsertTestCaseStruct{
 		{"updateTestCase0", "svc0", "80", "deploy0", "ns", []string{"example.0.0"}, false},
@@ -46,10 +47,10 @@ func TestInMemoryStore_UpsertStore_Update(t *testing.T) {
 		{"updateTestCase2", "svc2", "8080", "deploy2", "ns1", []string{"example.1.1"}, false},
 	}
 
-	upsertStoreHelper(testCases, t, s)
+	upsertMemoryMapHelper(testCases, t, s)
 }
 
-func TestInMemoryStore_genDeploymentKey(t *testing.T) {
+func TestMemoryMap_genDeploymentKey(t *testing.T) {
 	deploy := "exampledeploy"
 	ns := "examplens"
 	want := fmt.Sprintf("%s.%s", deploy, ns)
@@ -61,10 +62,10 @@ func TestInMemoryStore_genDeploymentKey(t *testing.T) {
 	}
 }
 
-func TestInMemoryStore_CheckDeployAndDomainsOwnership(t *testing.T) {
-	s := NewInMemoryStore()
+func TestMemoryMap_CheckDeployAndDomainsOwnership(t *testing.T) {
+	s := NewMemoryMap()
 
-	_ = s.UpsertStore("0", "svc0", "", "deploy0", "ns0", []string{"example.0.0"})
+	_ = s.UpsertMemoryMap("0", "svc0", "", "deploy0", "ns0", []string{"example.0.0"})
 
 	testCases := []struct {
 		id, deploy, ns string
@@ -88,8 +89,8 @@ func TestInMemoryStore_CheckDeployAndDomainsOwnership(t *testing.T) {
 	}
 }
 
-func TestInMemoryStore_cleanOldDeploymentFromStore(t *testing.T) {
-	s := NewInMemoryStore()
+func TestMemoryMap_cleanOldDeploymentFromMap(t *testing.T) {
+	s := NewMemoryMap()
 
 	r0, _ := model.NewRoute("0", "svc0", "", "deploy0", "ns0", []string{"example.0.0"})
 	createRoute(s, r0)
@@ -104,20 +105,20 @@ func TestInMemoryStore_cleanOldDeploymentFromStore(t *testing.T) {
 		{"1", r0, []string{"example.0.0", "example.0.1"}, []string{"example.0.1"}},
 		{"2", r0, []string{"example.0.0", "example.0.1"}, []string{"example.0.1"}},
 		{"3", r0, []string{"example.0.1"}, []string{"example.0.1"}},
-		{"4", r0, []string{"example.0.0"}, []string{}}, // the store has been updated but the route did not change
+		{"4", r0, []string{"example.0.0"}, []string{}}, // the map has been updated but the route did not change
 	}
 
 	for _, tc := range testCases {
-		got := cleanOldDomainsFromStore(s, tc.route.GetDomains(), tc.domains)
+		got := cleanOldDomainsFromMemoryMap(s, tc.route.GetDomains(), tc.domains)
 
 		if !utils.CompareUnorderedArray(got, tc.want) {
-			t.Errorf("cleanOldDeploymentFromStore(id = %s, %s) = %s; want = %s", tc.id, tc.domains, got, tc.want)
+			t.Errorf("cleanOldDeploymentFromMemoryMap(id = %s, %s) = %s; want = %s", tc.id, tc.domains, got, tc.want)
 		}
 	}
 }
 
-func TestInMemoryStore_UpdateLastUse(t *testing.T) {
-	s := NewInMemoryStore()
+func TestMemoryMap_UpdateLastUse(t *testing.T) {
+	s := NewMemoryMap()
 
 	r0, _ := model.NewRoute("0", "svc0", "", "deploy0", "ns0", []string{"example.0.0"})
 	createRoute(s, r0)
@@ -125,28 +126,28 @@ func TestInMemoryStore_UpdateLastUse(t *testing.T) {
 	lastUsed := r0.GetLastUsed()
 
 	testCases := []struct {
-		domain    string
+		id        string
 		errWanted bool
 	}{
-		{r0.GetDomains()[0], false},
+		{r0.GetId(), false},
 		{"", true},
 	}
 
 	for _, tc := range testCases {
-		errGot := s.UpdateLastUse(tc.domain)
+		errGot := s.UpdateLastUsed(tc.id, time.Now())
 
 		if tc.errWanted != (errGot != nil) {
-			t.Errorf("UpdateLastUse(%s) = %v; errWanted = %t", tc.domain, errGot, tc.errWanted)
+			t.Errorf("UpdateLastUsed(%s) = %v; errWanted = %t", tc.id, errGot, tc.errWanted)
 		}
 
 		if errGot == nil && !lastUsed.Before(r0.GetLastUsed()) {
-			t.Errorf("UpdateLastUse(%s) - %s is not before %s", tc.domain, lastUsed, r0.GetLastUsed())
+			t.Errorf("UpdateLastUsed(%s) - %s is not before %s", tc.id, lastUsed, r0.GetLastUsed())
 		}
 	}
 }
 
-func TestInMemoryStore_DeleteRoute(t *testing.T) {
-	s := NewInMemoryStore()
+func TestMemoryMap_DeleteRoute(t *testing.T) {
+	s := NewMemoryMap()
 
 	r0, _ := model.NewRoute("0", "svc0", "", "deploy0", "ns0", []string{"example.0.0"})
 	createRoute(s, r0)
@@ -170,7 +171,7 @@ func TestInMemoryStore_DeleteRoute(t *testing.T) {
 			_, err := getRoute(s, tc.id)
 
 			if err == nil {
-				t.Errorf("DeleteRoute(%s) = %v; route still in store", tc.id, errGot)
+				t.Errorf("DeleteRoute(%s) = %v; route still in memory", tc.id, errGot)
 			}
 		}
 	}

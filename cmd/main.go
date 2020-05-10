@@ -5,8 +5,10 @@ import (
 	"kube-proxless/internal/config"
 	ctrl "kube-proxless/internal/controller"
 	"kube-proxless/internal/logger"
+	"kube-proxless/internal/memory"
+	"kube-proxless/internal/pubsub"
+	"kube-proxless/internal/pubsub/redis"
 	"kube-proxless/internal/server/http"
-	"kube-proxless/internal/store/inmemory"
 )
 
 func main() {
@@ -14,10 +16,15 @@ func main() {
 
 	config.LoadEnvVars()
 
-	store := inmemory.NewInMemoryStore()
+	memoryMap := memory.NewMemoryMap()
 	cluster := kube.NewCluster(kube.NewKubeClient(config.KubeConfigPath))
 
-	controller := ctrl.NewController(store, cluster)
+	var ps pubsub.Interface
+	if config.RedisURL != "" {
+		ps = redis.NewRedisPubSub(config.RedisURL)
+	}
+
+	controller := ctrl.NewController(memoryMap, cluster, ps)
 
 	go controller.RunDownScaler(30) // TODO make `checkInterval` configurable
 

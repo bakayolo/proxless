@@ -41,7 +41,7 @@ func (s *httpServer) requestHandler(ctx *fasthttp.RequestCtx) {
 	logger.Debugf("Received request %s", ctx.Host())
 
 	host := utils.ParseHost(string(ctx.Host()))
-	route, err := s.controller.GetRouteByDomainFromStore(host)
+	route, err := s.controller.GetRouteByDomainFromMemory(host)
 	if err != nil {
 		forward404Error(ctx, err, host)
 	} else { // the route exists so we should have a deployment attached to the service
@@ -53,7 +53,7 @@ func (s *httpServer) requestHandler(ctx *fasthttp.RequestCtx) {
 		req.SetHost(origin)
 
 		// update before because it's gonna take some time to scale up the deployment
-		_ = s.controller.UpdateLastUseInStore(host)
+		_ = s.controller.UpdateLastUsedInMemory(route.GetId())
 
 		if err := s.client.do(req, res); err != nil { // First try
 			logger.Debugf("Error forwarding the request %s - Try scaling up the deployment", ctx.Host())
@@ -75,12 +75,12 @@ func (s *httpServer) requestHandler(ctx *fasthttp.RequestCtx) {
 
 		// update after because it took some time to scale up the deployment
 		// TODO see this, I don't like updating it twice
-		_ = s.controller.UpdateLastUseInStore(host)
+		_ = s.controller.UpdateLastUsedInMemory(route.GetId())
 	}
 }
 
 func forward404Error(ctx *fasthttp.RequestCtx, err error, host string) {
-	logger.Errorf(err, "Could not find domain '%s' with parsed url '%s' in the store", ctx.Host(), host)
+	logger.Errorf(err, "Could not find domain '%s' with parsed url '%s' in memory", ctx.Host(), host)
 	ctx.Response.SetStatusCode(404)
 	ctx.Response.SetBodyString(fmt.Sprintf("Domain %s not found", ctx.Host()))
 }

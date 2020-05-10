@@ -4,37 +4,45 @@ import (
 	"kube-proxless/internal/cluster"
 	"kube-proxless/internal/config"
 	"kube-proxless/internal/logger"
+	"kube-proxless/internal/memory"
 	"kube-proxless/internal/model"
-	"kube-proxless/internal/store"
+	"kube-proxless/internal/pubsub"
 	"time"
 )
 
 type Interface interface {
-	GetRouteByDomainFromStore(domain string) (*model.Route, error)
-	UpdateLastUseInStore(domain string) error
+	GetRouteByDomainFromMemory(domain string) (*model.Route, error)
+	UpdateLastUsedInMemory(id string) error
 	ScaleUpDeployment(name, namespace string) error
 	RunDownScaler(checkInterval int)
 	RunServicesEngine()
 }
 
 type controller struct {
-	store   store.Interface
+	memory  memory.Interface
 	cluster cluster.Interface
+	pubsub  pubsub.Interface
 }
 
-func NewController(store store.Interface, cluster cluster.Interface) *controller {
+func NewController(memory memory.Interface, cluster cluster.Interface, ps pubsub.Interface) *controller {
 	return &controller{
-		store:   store,
+		memory:  memory,
 		cluster: cluster,
+		pubsub:  ps,
 	}
 }
 
-func (c *controller) GetRouteByDomainFromStore(domain string) (*model.Route, error) {
-	return c.store.GetRouteByDomain(domain)
+func (c *controller) GetRouteByDomainFromMemory(domain string) (*model.Route, error) {
+	return c.memory.GetRouteByDomain(domain)
 }
 
-func (c *controller) UpdateLastUseInStore(domain string) error {
-	return c.store.UpdateLastUse(domain)
+func (c *controller) UpdateLastUsedInMemory(id string) error {
+	now := time.Now()
+	if c.pubsub != nil {
+		c.pubsub.Publish(id, now)
+	}
+
+	return c.memory.UpdateLastUsed(id, now)
 }
 
 func (c *controller) ScaleUpDeployment(name, namespace string) error {
@@ -66,10 +74,10 @@ func scaleDownDeployments(c *controller) []error {
 	return c.cluster.ScaleDownDeployments(
 		config.NamespaceScope,
 		func(deployName, namespace string) (bool, time.Duration, error) {
-			route, err := c.store.GetRouteByDeployment(deployName, namespace)
+			route, err := c.memory.GetRouteByDeployment(deployName, namespace)
 
 			if err != nil {
-				logger.Errorf(err, "Could not get route %s.%s from store", deployName, namespace)
+				logger.Errorf(err, "Could not get route %s.%s from memory", deployName, namespace)
 				return false, 0, err
 			}
 
@@ -98,9 +106,17 @@ func (c *controller) RunServicesEngine() {
 		config.ProxlessService,
 		config.ProxlessNamespace,
 		func(id, name, port, deployName, namespace string, domains []string) error {
-			return c.store.UpsertStore(id, name, port, deployName, namespace, domains)
+			if c.pubsub != nil {
+				c.pubsub.Subscribe(id, c.memory.UpdateLastUsed)
+			}
+
+			return c.memory.UpsertMemoryMap(id, name, port, deployName, namespace, domains)
 		},
 		func(id string) error {
-			return c.store.DeleteRoute(id)
+			if c.pubsub != nil {
+				c.pubsub.Unsubscribe(id)
+			}
+
+			return c.memory.DeleteRoute(id)
 		})
 }

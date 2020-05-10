@@ -6,7 +6,8 @@ To use it, add the `proxless/domains` and the `proxless/deployment` annotation t
 
 ## Introduction
 
-This chart bootstraps a proxless deployment on a [Kubernetes](http://kubernetes.io) cluster using the [Helm](https://helm.sh) package manager.
+This chart bootstraps a proxless deployment on a [Kubernetes](http://kubernetes.io) cluster using the [Helm](https://helm.sh) package manager.  
+It also install a redis standalone for HA purpose.
 
 ## Prerequisites
 

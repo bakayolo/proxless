@@ -16,6 +16,7 @@ var (
 	NamespaceScope                    string
 	ServerlessTTLSeconds              int
 	DeploymentReadinessTimeoutSeconds int
+	RedisURL                          string
 )
 
 func LoadEnvVars() {
@@ -33,6 +34,8 @@ func LoadEnvVars() {
 
 	ServerlessTTLSeconds = getInt("SERVERLESS_TTL_SECONDS", 30)
 	DeploymentReadinessTimeoutSeconds = getInt("DEPLOYMENT_READINESS_TIMEOUT_SECONDS", 30)
+
+	RedisURL = os.Getenv("REDIS_URL")
 }
 
 func getString(key, fallback string) string {

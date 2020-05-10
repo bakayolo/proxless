@@ -131,21 +131,21 @@ func helper_shouldScaleDown(_, _ string) (bool, time.Duration, error) {
 	return true, time.Now().Sub(time.Now()), nil
 }
 
-type fakeStore struct {
-	store map[string]string
+type fakeMemory struct {
+	m map[string]string
 }
 
-func (s *fakeStore) helper_upsertStore(id, name, port, deployName, namespace string, domains []string) error {
+func (s *fakeMemory) helper_upsertMemory(id, name, port, deployName, namespace string, domains []string) error {
 	if deployName == "" {
-		return errors.New("error upserting store")
+		return errors.New("error upserting m")
 	}
-	s.store[id] = deployName
+	s.m[id] = deployName
 	return nil
 }
 
-func (s *fakeStore) helper_deleteRouteFromStore(id string) error {
-	if _, ok := s.store[id]; ok {
-		delete(s.store, id)
+func (s *fakeMemory) helper_deleteRouteFromMemory(id string) error {
+	if _, ok := s.m[id]; ok {
+		delete(s.m, id)
 		return nil
 	}
 	return errors.New("route not found")
