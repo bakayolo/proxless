@@ -10,7 +10,7 @@ type Interface interface {
 
 	RunServicesEngine(
 		namespaceScope, proxlessService, proxlessNamespace string,
-		upsertStore func(id, name, port, deployName, namespace string, domains []string) error,
-		deleteRouteFromStore func(id string) error,
+		upsertMemory func(id, name, port, deployName, namespace string, domains []string) error,
+		deleteRouteFromMemory func(id string) error,
 	)
 }

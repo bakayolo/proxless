@@ -64,7 +64,7 @@ func TestClusterClient_RunServicesEngine(t *testing.T) {
 	client := NewCluster(fake.NewSimpleClientset())
 	client.servicesInformerResyncInterval = 2
 
-	store := fakeStore{store: map[string]string{}}
+	memory := fakeMemory{m: map[string]string{}}
 
 	helper_createNamespace(t, client.clientSet)
 	helper_createProxlessCompatibleDeployment(t, client.clientSet)
@@ -74,20 +74,20 @@ func TestClusterClient_RunServicesEngine(t *testing.T) {
 	// but not sure if it is worth it
 	go client.RunServicesEngine(
 		dummyNamespaceName, dummyProxlessName, dummyProxlessName,
-		store.helper_upsertStore, store.helper_deleteRouteFromStore)
+		memory.helper_upsertMemory, memory.helper_deleteRouteFromMemory)
 
-	// don't store random services
+	// don't add random services in memory
 	helper_createRandomService(t, client.clientSet)
 	time.Sleep(1 * time.Second)
-	if len(store.store) > 0 {
-		t.Errorf("RunServicesEngine(); must not store random service information")
+	if len(memory.m) > 0 {
+		t.Errorf("RunServicesEngine(); must not add random service information into memory")
 	}
 
-	// store proxless compatible services
+	// add proxless compatible services into memory
 	service := helper_createProxlessCompatibleService(t, client.clientSet)
 	time.Sleep(1 * time.Second)
-	if _, ok := store.store[string(service.UID)]; !ok {
-		t.Errorf("RunServicesEngine(); service not added in store")
+	if _, ok := memory.m[string(service.UID)]; !ok {
+		t.Errorf("RunServicesEngine(); service not added in memory")
 	}
 	_, err :=
 		client.clientSet.CoreV1().Services(dummyNamespaceName).Get(genServiceToAppName(dummyProxlessName), v1.GetOptions{})
@@ -113,7 +113,7 @@ func TestClusterClient_RunServicesEngine(t *testing.T) {
 		t.Errorf("RunServicesEngine(); labels must be removed; labels = %s", randomDeploy.Labels)
 	}
 
-	// must remove the service from the store and remove the label from the deployment
+	// must remove the service from the memory and remove the label from the deployment
 	// if the service is not proxless compatible anymore
 	service.Annotations = map[string]string{}
 	helper_updateService(t, client.clientSet, service)
@@ -122,14 +122,14 @@ func TestClusterClient_RunServicesEngine(t *testing.T) {
 	if len(proxlessDeploy.Labels) > 0 {
 		t.Errorf("RunServicesEngine(); labels must be removed; labels = %s", proxlessDeploy.Labels)
 	}
-	if len(store.store) > 0 {
-		t.Errorf("RunServicesEngine(); the service must be removed from the store")
+	if len(memory.m) > 0 {
+		t.Errorf("RunServicesEngine(); the service must be removed from the memory")
 	}
 	_, err =
 		client.clientSet.CoreV1().Services(dummyNamespaceName).Get(genServiceToAppName(dummyProxlessName), v1.GetOptions{})
 	assert.Error(t, err)
 
-	// must remove the service from the store and remove the label from the deployment
+	// must remove the service from the memory and remove the label from the deployment
 	// if the service is deleted from kubernetes
 	service.Annotations = map[string]string{
 		cluster.AnnotationServiceDomainKey: "dummy.io",
@@ -142,8 +142,8 @@ func TestClusterClient_RunServicesEngine(t *testing.T) {
 	if len(proxlessDeploy.Labels) > 0 {
 		t.Errorf("RunServicesEngine(); labels must be removed; labels = %s", proxlessDeploy.Labels)
 	}
-	if len(store.store) > 0 {
-		t.Errorf("RunServicesEngine(); the service must be removed from the store")
+	if len(memory.m) > 0 {
+		t.Errorf("RunServicesEngine(); the service must be removed from the memory")
 	}
 	_, err =
 		client.clientSet.CoreV1().Services(dummyNamespaceName).Get(genServiceToAppName(dummyProxlessName), v1.GetOptions{})

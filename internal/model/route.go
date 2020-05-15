@@ -18,7 +18,7 @@ type Route struct {
 	deployment string
 	namespace  string
 	domains    []string
-	lastUsed   time.Time // TODO Need to store that in Kubernetes. This is not scalable!
+	lastUsed   time.Time
 }
 
 func NewRoute(id, svc, port, deploy, ns string, domains []string) (*Route, error) {

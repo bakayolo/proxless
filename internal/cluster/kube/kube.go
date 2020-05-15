@@ -44,11 +44,11 @@ func (k *kubeCluster) ScaleDownDeployments(
 
 func (k *kubeCluster) RunServicesEngine(
 	namespaceScope, proxlessService, proxlessNamespace string,
-	upsertStore func(id, name, port, deployName, namespace string, domains []string) error,
-	deleteRouteFromStore func(id string) error,
+	upsertMemory func(id, name, port, deployName, namespace string, domains []string) error,
+	deleteRouteFromMemory func(id string) error,
 ) {
 	// TODO make the resync is configurable
 	runServicesInformer(
 		k.clientSet, namespaceScope, proxlessService, proxlessNamespace, k.servicesInformerResyncInterval,
-		upsertStore, deleteRouteFromStore)
+		upsertMemory, deleteRouteFromMemory)
 }

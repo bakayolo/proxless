@@ -12,12 +12,15 @@ port: 80
 
 ## If true, a Role will be created - Proxless is only working within the namespace
 ## If false, a ClusterRole will be created - Proxless is available globally
-namespaceScoped: true
+namespaceScoped: false
+
+replicas: 2
 
 env:
   MAX_CONS_PER_HOST: 10000
   SERVERLESS_TTL_SECONDS: 30 # Time in seconds proxless waits before scaling down the app
   DEPLOYMENT_READINESS_TIMEOUT_SECONDS: 30 # Time in seconds proxless waits for the deployment to be ready when scaling up the app
+  REDIS_URL: proxless-redis-master:6379
 
 service:
   type: "ClusterIP"
@@ -30,3 +33,16 @@ ingress:
     enabled: false
     secret: proxless-tls
   host: proxless.kintohub.net
+
+
+#######
+# Values for redis
+# Do not change them
+#######
+redis:
+  cluster:
+    enabled: false
+  usePassword: false
+  master:
+    persistence:
+      enabled: false

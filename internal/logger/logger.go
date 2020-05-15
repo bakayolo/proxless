@@ -43,6 +43,10 @@ func Fatalf(err error, msg string, params ...interface{}) {
 	log.Fatal().Err(err).Msgf(msg, params...)
 }
 
+func Warnf(err error, msg string, params ...interface{}) {
+	log.Warn().Err(err).Msgf(msg, params...)
+}
+
 func Debugf(msg string, params ...interface{}) {
 	log.Debug().Msgf(msg, params...)
 }

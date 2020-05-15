@@ -44,18 +44,18 @@ func (*fakeCluster) ScaleDownDeployments(
 
 func (*fakeCluster) RunServicesEngine(
 	namespaceScope, proxlessService, proxlessNamespace string,
-	upsertStore func(id, name, port, deployName, namespace string, domains []string) error,
-	deleteRouteFromStore func(id string) error,
+	upsertMemory func(id, name, port, deployName, namespace string, domains []string) error,
+	deleteRouteFromMemory func(id string) error,
 ) {
 	if namespaceScope == "upsert" { // TODO this is too hacky, see how others are doing
-		err := upsertStore(
+		err := upsertMemory(
 			serviceId, serviceName, "", deployName, namespaceName, domains)
 
 		if err != nil {
 			logger.Errorf(err, "Error upserting in fake package")
 		}
 	} else {
-		err := deleteRouteFromStore(serviceId)
+		err := deleteRouteFromMemory(serviceId)
 
 		if err != nil {
 			logger.Errorf(err, "Error deleting route in fake package")

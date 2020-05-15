@@ -3,7 +3,7 @@
 > Reduce your kubernetes cost by making all your deployments **on-demand** with Proxless
 > Deploy Proxless in front of your services and it will scale down the associated deployments when they are not requested and scale them back up when they are.
 
-**No need a CRD, no need a huge stack, the proxless deployment is the only thing u need.**
+**No need a CRD, no need a huge stack, the proxless deployment are the only things u need.**
 
 ## Disclaimer
 
@@ -13,9 +13,12 @@ Using it on your production cluster is done at your own risks.
 ## In 1 minute
 
 Proxless is a simple proxy written in golang and consume a minimum of resources.  
-You don't need to run anything other than the proxless deployment.
+You don't need to run anything other than proxless deployment and it will not modify your existing resources.
 
 Proxless looks for the services in the cluster that have a specific annotation and scale up and down their associated deployment. 
+
+_Note: in order for proxless to be fully high available, all the replicas need to sync up the `lastUsed` time for each request.
+In order to achieve that, a non persistent standalone redis is needed. This configuration is fully optional and provided in the helm chart._
 
 Check the [documentation](docs) for more information.
 
@@ -28,7 +31,7 @@ Check the [documentation](docs) for more information.
     - env var `NAMESPACE_SCOPED` is `false - proxless will look for any services in the cluster.
     - a `ClusterRole` is required. See [here](deploy/kubernetes/helm/templates/clusterrole.yaml).
 
-## Deploy Proxless
+## Quickstart
 
 ### Namespace scoped
 
@@ -46,7 +49,7 @@ $ kubectl apply -f deploy/kubernetes/kubectl/proxless-global.yaml
 
 ### Helm
 
-You can use our [helm chart](deploy/kubernetes/helm/README.md) for a more configurable approach.
+You can use our [helm chart](deploy/kubernetes/helm/README.md) for a more configurable approach and the HA configuration.
 
 ## Test it
 

@@ -7,7 +7,7 @@ import (
 	"kube-proxless/internal/cluster/fake"
 	"kube-proxless/internal/config"
 	"kube-proxless/internal/controller"
-	"kube-proxless/internal/store/inmemory"
+	"kube-proxless/internal/memory"
 	"testing"
 )
 
@@ -21,7 +21,7 @@ func TestNewHTTPServer(t *testing.T) {
 }
 
 func TestHTTPServer_Run(t *testing.T) {
-	server := NewHTTPServer(controller.NewController(inmemory.NewInMemoryStore(), fake.NewCluster()))
+	server := NewHTTPServer(controller.NewController(memory.NewMemoryMap(), fake.NewCluster(), nil))
 	server.client = &mockFastHTTP{}
 
 	// make sure it does not panic
@@ -29,8 +29,8 @@ func TestHTTPServer_Run(t *testing.T) {
 }
 
 func TestHTTPServer_requestHandler(t *testing.T) {
-	store := inmemory.NewInMemoryStore()
-	server := NewHTTPServer(controller.NewController(store, fake.NewCluster()))
+	mem := memory.NewMemoryMap()
+	server := NewHTTPServer(controller.NewController(mem, fake.NewCluster(), nil))
 
 	testCases := []struct {
 		host       string
@@ -42,8 +42,8 @@ func TestHTTPServer_requestHandler(t *testing.T) {
 		{"mock.io", true, 500},
 	}
 
-	// add route in the store
-	_ = store.UpsertStore(
+	// add route in the memory
+	_ = mem.UpsertMemoryMap(
 		"mock-id", "mock-svc", "", "mock-deploy", "mock-ns", []string{"mock.io"})
 
 	for _, tc := range testCases {

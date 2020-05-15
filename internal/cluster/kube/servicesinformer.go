@@ -12,8 +12,8 @@ func runServicesInformer(
 	clientSet kubernetes.Interface,
 	namespaceScope, proxlessService, proxlessNamespace string,
 	informerResyncInterval int,
-	upsertStore func(id, name, port, deployName, namespace string, domains []string) error,
-	deleteRouteFromStore func(id string) error,
+	upsertMemory func(id, name, port, deployName, namespace string, domains []string) error,
+	deleteRouteFromMemory func(id string) error,
 ) {
 	namespaceScoped := false
 	opts := make([]informers.SharedInformerOption, 0)
@@ -34,7 +34,7 @@ func runServicesInformer(
 				return
 			}
 
-			addServiceToStore(clientSet, svc, namespaceScoped, proxlessService, proxlessNamespace, upsertStore)
+			addServiceToMemory(clientSet, svc, namespaceScoped, proxlessService, proxlessNamespace, upsertMemory)
 
 			return
 		},
@@ -51,9 +51,9 @@ func runServicesInformer(
 				logger.Errorf(err, "Cannot process service in UpdateFunc handler")
 			}
 
-			updateServiceInStore(
+			updateServiceMemory(
 				clientSet, oldSvc, newSvc, namespaceScoped, proxlessService, proxlessNamespace,
-				upsertStore, deleteRouteFromStore)
+				upsertMemory, deleteRouteFromMemory)
 			return
 		},
 		DeleteFunc: func(obj interface{}) {
@@ -64,7 +64,7 @@ func runServicesInformer(
 				return
 			}
 
-			removeServiceFromStore(clientSet, svc, deleteRouteFromStore)
+			removeServiceFromMemory(clientSet, svc, deleteRouteFromMemory)
 
 			return
 		},

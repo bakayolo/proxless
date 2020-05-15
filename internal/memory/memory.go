@@ -1,4 +1,4 @@
-package inmemory
+package memory
 
 import (
 	"errors"
@@ -9,19 +9,27 @@ import (
 	"time"
 )
 
-type inMemoryStore struct {
+type Interface interface {
+	UpsertMemoryMap(id, service, port, deploy, namespace string, domains []string) error
+	GetRouteByDomain(domain string) (*model.Route, error)
+	GetRouteByDeployment(deploy, namespace string) (*model.Route, error)
+	UpdateLastUsed(id string, t time.Time) error
+	DeleteRoute(id string) error
+}
+
+type MemoryMap struct {
 	m    map[string]*model.Route
 	lock sync.RWMutex
 }
 
-func NewInMemoryStore() *inMemoryStore {
-	return &inMemoryStore{
+func NewMemoryMap() *MemoryMap {
+	return &MemoryMap{
 		m:    make(map[string]*model.Route),
 		lock: sync.RWMutex{},
 	}
 }
 
-func (s *inMemoryStore) UpsertStore(id, service, port, deploy, namespace string, domains []string) error {
+func (s *MemoryMap) UpsertMemoryMap(id, service, port, deploy, namespace string, domains []string) error {
 	if id == "" || service == "" || deploy == "" || namespace == "" || utils.IsArrayEmpty(domains) {
 		return errors.New(
 			fmt.Sprintf(
@@ -46,7 +54,7 @@ func (s *inMemoryStore) UpsertStore(id, service, port, deploy, namespace string,
 		}
 
 		// /!\ this need to be on top - otherwise the data will have already been overriden in the route
-		newKeys := cleanStore(
+		newKeys := cleanMemoryMap(
 			s,
 			existingRoute.GetDeployment(), existingRoute.GetNamespace(), existingRoute.GetDomains(),
 			deploy, namespace, domains)
@@ -76,7 +84,7 @@ func (s *inMemoryStore) UpsertStore(id, service, port, deploy, namespace string,
 }
 
 // return an error if deploy or domains are already associated to a different id
-func checkDeployAndDomainsOwnership(s *inMemoryStore, id, deploy, ns string, domains []string) error {
+func checkDeployAndDomainsOwnership(s *MemoryMap, id, deploy, ns string, domains []string) error {
 	r, err := s.GetRouteByDeployment(deploy, ns)
 
 	if err == nil && r.GetId() != id {
@@ -94,7 +102,7 @@ func checkDeployAndDomainsOwnership(s *inMemoryStore, id, deploy, ns string, dom
 	return nil
 }
 
-func createRoute(s *inMemoryStore, route *model.Route) {
+func createRoute(s *MemoryMap, route *model.Route) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -106,10 +114,10 @@ func createRoute(s *inMemoryStore, route *model.Route) {
 	}
 }
 
-// Remove old domains and deployment from the store if they are not == new ones
+// Remove old domains and deployment from the map if they are not == new ones
 // return the domains and deployment that are not a key in the map
-func cleanStore(
-	s *inMemoryStore,
+func cleanMemoryMap(
+	s *MemoryMap,
 	oldDeploy, oldNs string, oldDomains []string,
 	newDeploy, newNs string, newDomains []string) []string {
 	s.lock.Lock()
@@ -117,16 +125,16 @@ func cleanStore(
 
 	var newKeys []string
 
-	deployKeyNotInStore := cleanOldDeploymentFromStore(s, oldDeploy, oldNs, newDeploy, newNs)
+	deployKeyNotInMap := cleanOldDeploymentFromMemoryMap(s, oldDeploy, oldNs, newDeploy, newNs)
 
-	if deployKeyNotInStore != "" {
-		newKeys = append(newKeys, deployKeyNotInStore)
+	if deployKeyNotInMap != "" {
+		newKeys = append(newKeys, deployKeyNotInMap)
 	}
 
-	domainsNotInStore := cleanOldDomainsFromStore(s, oldDomains, newDomains)
+	domainsNotInMap := cleanOldDomainsFromMemoryMap(s, oldDomains, newDomains)
 
 	if newDomains != nil {
-		newKeys = append(newKeys, domainsNotInStore...)
+		newKeys = append(newKeys, domainsNotInMap...)
 	}
 
 	if newKeys == nil {
@@ -136,8 +144,8 @@ func cleanStore(
 	return newKeys
 }
 
-// return the new deployment key if it does not exist in the store
-func cleanOldDeploymentFromStore(s *inMemoryStore, oldDeploy, oldNs, newDeploy, newNs string) string {
+// return the new deployment key if it does not exist in the map
+func cleanOldDeploymentFromMemoryMap(s *MemoryMap, oldDeploy, oldNs, newDeploy, newNs string) string {
 	oldDeploymentKey := genDeploymentKey(oldDeploy, oldNs)
 	newDeploymentKey := genDeploymentKey(newDeploy, newNs)
 
@@ -151,14 +159,14 @@ func cleanOldDeploymentFromStore(s *inMemoryStore, oldDeploy, oldNs, newDeploy, 
 
 // TODO review complexity
 // return the new domains that are not in the newDomains list
-func cleanOldDomainsFromStore(s *inMemoryStore, oldDomains, newDomains []string) []string {
+func cleanOldDomainsFromMemoryMap(s *MemoryMap, oldDomains, newDomains []string) []string {
 	// get the difference between the 2 domains arrays
 	diff := utils.DiffUnorderedArray(oldDomains, newDomains)
 
 	var newKeys []string
 
 	if diff != nil && len(diff) > 0 {
-		// remove domain from the store if they are not in the list of new Domains
+		// remove domain from the map if they are not in the list of new Domains
 		for _, d := range diff {
 			if !utils.Contains(newDomains, d) {
 				delete(s.m, d)
@@ -179,16 +187,16 @@ func genDeploymentKey(deployment, namespace string) string {
 	return fmt.Sprintf("%s.%s", deployment, namespace)
 }
 
-func (s *inMemoryStore) GetRouteByDomain(domain string) (*model.Route, error) {
+func (s *MemoryMap) GetRouteByDomain(domain string) (*model.Route, error) {
 	return getRoute(s, domain)
 }
 
-func (s *inMemoryStore) GetRouteByDeployment(deploy, namespace string) (*model.Route, error) {
+func (s *MemoryMap) GetRouteByDeployment(deploy, namespace string) (*model.Route, error) {
 	deploymentKey := genDeploymentKey(deploy, namespace)
 	return getRoute(s, deploymentKey)
 }
 
-func getRoute(s *inMemoryStore, key string) (*model.Route, error) {
+func getRoute(s *MemoryMap, key string) (*model.Route, error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -196,23 +204,23 @@ func getRoute(s *inMemoryStore, key string) (*model.Route, error) {
 		return route, nil
 	}
 
-	return nil, errors.New(fmt.Sprintf("Route %s not found in store", key))
+	return nil, errors.New(fmt.Sprintf("Route %s not found in map", key))
 }
 
-func (s *inMemoryStore) UpdateLastUse(domain string) error {
+func (s *MemoryMap) UpdateLastUsed(id string, t time.Time) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	if route, ok := s.m[domain]; ok {
-		// No need to persist in the store, it's a pointer
-		route.SetLastUsed(time.Now())
+	if route, ok := s.m[id]; ok {
+		// No need to persist in the map, it's a pointer
+		route.SetLastUsed(t)
 		return nil
 	}
 
-	return errors.New(fmt.Sprintf("Route %s not found in store", domain))
+	return errors.New(fmt.Sprintf("Route %s not found in map", id))
 }
 
-func (s *inMemoryStore) DeleteRoute(id string) error {
+func (s *MemoryMap) DeleteRoute(id string) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -226,5 +234,5 @@ func (s *inMemoryStore) DeleteRoute(id string) error {
 		return nil
 	}
 
-	return errors.New(fmt.Sprintf("Route %s not found in store", id))
+	return errors.New(fmt.Sprintf("Route %s not found in map", id))
 }

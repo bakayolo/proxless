@@ -93,7 +93,7 @@ func scaleDownDeployments(
 
 	var errs []error
 	if err != nil {
-		logger.Errorf(
+		logger.Warnf(
 			err,
 			"Could not list deployments with label %s in namespace %s",
 			labelSelector.LabelSelector, namespaceScope)

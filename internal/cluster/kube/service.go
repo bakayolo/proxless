@@ -51,10 +51,10 @@ func getPortFromServicePorts(ports []corev1.ServicePort) string {
 	return strconv.Itoa(int(port.TargetPort.IntVal))
 }
 
-func addServiceToStore(
+func addServiceToMemory(
 	clientset kubernetes.Interface, svc *corev1.Service, namespaceScoped bool,
 	proxlessSvc, proxlessNamespace string,
-	upsertStore func(id, name, port, deployName, namespace string, domains []string) error,
+	upsertMemory func(id, name, port, deployName, namespace string, domains []string) error,
 ) {
 	if isAnnotationsProxlessCompatible(svc.ObjectMeta) {
 		deployName := svc.Annotations[cluster.AnnotationServiceDeployKey]
@@ -79,19 +79,19 @@ func addServiceToStore(
 		domains :=
 			genDomains(svc.Annotations[cluster.AnnotationServiceDomainKey], svc.Name, svc.Namespace, namespaceScoped)
 
-		err = upsertStore(string(svc.UID), svc.Name, port, deployName, svc.Namespace, domains)
+		err = upsertMemory(string(svc.UID), svc.Name, port, deployName, svc.Namespace, domains)
 
 		if err == nil {
-			logger.Debugf("Service %s.%s added into the store", svc.Name, svc.Namespace)
+			logger.Debugf("Service %s.%s added into memory", svc.Name, svc.Namespace)
 		} else {
-			logger.Errorf(err, "Error adding service %s.%s into the store", svc.Name, svc.Namespace)
+			logger.Errorf(err, "Error adding service %s.%s into memory", svc.Name, svc.Namespace)
 		}
 	}
 }
 
-func removeServiceFromStore(
+func removeServiceFromMemory(
 	clientset kubernetes.Interface, svc *corev1.Service,
-	deleteRouteFromStore func(id string) error,
+	deleteRouteFromMemory func(id string) error,
 ) {
 	if isAnnotationsProxlessCompatible(svc.ObjectMeta) {
 		deployName := svc.Annotations[cluster.AnnotationServiceDeployKey]
@@ -101,21 +101,21 @@ func removeServiceFromStore(
 
 		_ = deleteProxlessService(clientset, svc.Name, svc.Namespace)
 
-		err := deleteRouteFromStore(string(svc.UID))
+		err := deleteRouteFromMemory(string(svc.UID))
 
 		if err == nil {
-			logger.Debugf("Service %s.%s removed from the store", svc.Name, svc.Namespace)
+			logger.Debugf("Service %s.%s removed from memory", svc.Name, svc.Namespace)
 		} else {
-			logger.Errorf(err, "Error removing service %s.%s from store", svc.Name, svc.Namespace)
+			logger.Errorf(err, "Error removing service %s.%s memory", svc.Name, svc.Namespace)
 		}
 	}
 }
 
-func updateServiceInStore(
+func updateServiceMemory(
 	clientset kubernetes.Interface, oldSvc, newSvc *corev1.Service, namespaceScoped bool,
 	proxlessService, proxlessNamespace string,
-	upsertStore func(id, name, port, deployName, namespace string, domains []string) error,
-	deleteRouteFromStore func(id string) error,
+	upsertMemory func(id, name, port, deployName, namespace string, domains []string) error,
+	deleteRouteFromMemory func(id string) error,
 ) {
 	if isAnnotationsProxlessCompatible(oldSvc.ObjectMeta) &&
 		isAnnotationsProxlessCompatible(newSvc.ObjectMeta) { // updating service
@@ -129,13 +129,13 @@ func updateServiceInStore(
 			}
 		}
 
-		// the `addServiceToStore` is idempotent so we can reuse it in the update
-		addServiceToStore(clientset, newSvc, namespaceScoped, proxlessService, proxlessNamespace, upsertStore)
+		// the `addServiceToMemory` is idempotent so we can reuse it in the update
+		addServiceToMemory(clientset, newSvc, namespaceScoped, proxlessService, proxlessNamespace, upsertMemory)
 	} else if !isAnnotationsProxlessCompatible(oldSvc.ObjectMeta) &&
 		isAnnotationsProxlessCompatible(newSvc.ObjectMeta) { // adding new service
-		addServiceToStore(clientset, newSvc, namespaceScoped, proxlessService, proxlessNamespace, upsertStore)
+		addServiceToMemory(clientset, newSvc, namespaceScoped, proxlessService, proxlessNamespace, upsertMemory)
 	} else if isAnnotationsProxlessCompatible(oldSvc.ObjectMeta) &&
 		!isAnnotationsProxlessCompatible(newSvc.ObjectMeta) { // removing service
-		removeServiceFromStore(clientset, oldSvc, deleteRouteFromStore)
+		removeServiceFromMemory(clientset, oldSvc, deleteRouteFromMemory)
 	}
 }
