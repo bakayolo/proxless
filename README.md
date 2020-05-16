@@ -17,7 +17,7 @@ You don't need to run anything other than proxless deployment and it will not mo
 
 Proxless looks for the services in the cluster that have a specific annotation and scale up and down their associated deployment. 
 
-_Note: in order for proxless to be fully high available, all the replicas need to sync up the `lastUsed` time for each request.
+_Note: in order for proxless to be fully high available, all the replicas need to sync up the `lastUsed` time for each request between each other.
 In order to achieve that, a non persistent standalone redis is needed. This configuration is fully optional and provided in the helm chart._
 
 Check the [documentation](docs) for more information.
@@ -26,38 +26,35 @@ Check the [documentation](docs) for more information.
  
 - **Namespace scoped**
     - env var `NAMESPACE_SCOPED` must be `true` - proxless will only look for services within its namespace.
-    - a `Role` is required.  See [here](deploy/kubernetes/helm/templates/role.yaml).
+    - a `Role` is required.
 - **Cluster wide**
     - env var `NAMESPACE_SCOPED` is `false - proxless will look for any services in the cluster.
-    - a `ClusterRole` is required. See [here](deploy/kubernetes/helm/templates/clusterrole.yaml).
+    - a `ClusterRole` is required. See [here](deploy/helm/templates/clusterrole.yaml).
 
 ## Quickstart
 
-### Namespace scoped
+### Kubectl
 
 ```shell script
-$ kubectl apply -f deploy/kubernetes/kubectl/proxless-scoped.yaml
+$ kubectl apply -f deploy/kubectl/proxless.yaml
 ```
 
-### Cluster wide
-
-_Notes: it will create a `proxless` namespace and deploy proxless there_
-
-```shell script
-$ kubectl apply -f deploy/kubernetes/kubectl/proxless-global.yaml
-```
+This will deploy a proxless scoped to your namespace.  
+Use the helm chart below to make it cluster wide.
 
 ### Helm
 
-You can use our [helm chart](deploy/kubernetes/helm/README.md) for a more configurable approach and the HA configuration.
+You can use our [helm chart](deploy/helm/README.md) for a more configurable approach.  
+With the chart, you will be able to configure the High Availability and choose if you want proxless to be installed cluster wide or not.
 
 ## Test it
 
-Deploy the [example](example/kubernetes/example.yaml).  
-It's a basic nginx pod doing a `proxy_pass` to a hello-world microservice pod.
+Deploy the [example](example/kubectl/example.yaml).  
+It's a basic nginx pod doing a `proxy_pass` to a hello-world api pod.  
+By default, the 2 pods are scaled down.  
 
 ```shell script
-$ kubectl apply -f example/kubernetes/example.yaml
+$ kubectl apply -f example/kubectl/example.yaml
 ```
 
 Port-forward to your proxless deployment.
@@ -78,7 +75,7 @@ $ curl -H "Host: example.io" localhost:8080
 {"message":"Hello"}
 ```
 
-More information [here](example/kubernetes/README.md)
+More information [here](example/kubectl/README.md)
 
 ## Development Setup
 

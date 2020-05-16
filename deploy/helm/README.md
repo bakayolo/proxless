@@ -51,6 +51,7 @@ Parameter | Description | Default
 `env.MAX_CONS_PER_HOST` | max connections proxless can forward for a single host. More info [here](https://godoc.org/github.com/valyala/fasthttp#Client) | `10000`
 `env.SERVERLESS_TTL_SECONDS` | time in seconds proxless waits before scaling down the app | `30`
 `env.DEPLOYMENT_READINESS_TIMEOUT_SECONDS` | time in seconds proxless waits for the deployment to be ready when scaling up the app | false
+`env.REDIS_URL` | (optional) url of redis to make proxless fully HA | `proxless-redis-master:6379`
 `service.type` | kubernetes service type | `ClusterIP`
 `ingress.enabled` | create a kubernetes ingress resource for calling proxless externally. | `false`
 `ingress.annotations` | ingress annotations | `kubernetes.io/ingress.class: nginx`
