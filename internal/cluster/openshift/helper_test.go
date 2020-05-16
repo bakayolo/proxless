@@ -1,15 +1,17 @@
-package kube
+// TODO this is almost a COPY/PASTE of `kube/service.go` - see how we wanna deal with it
+
+package openshift
 
 import (
 	"context"
 	"errors"
+	appsv1 "github.com/openshift/api/apps/v1"
+	"github.com/openshift/client-go/apps/clientset/versioned"
 	"github.com/stretchr/testify/assert"
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/utils/pointer"
 	"kube-proxless/internal/cluster/utils"
 	"testing"
 	"time"
@@ -32,48 +34,49 @@ func helper_createNamespace(t *testing.T, clientSet kubernetes.Interface) {
 	assert.NoError(t, err)
 }
 
-func helper_createProxlessCompatibleDeployment(t *testing.T, clientSet kubernetes.Interface) *appsv1.Deployment {
-	dummyDeploy := &appsv1.Deployment{
+func helper_createProxlessCompatibleDeployment(t *testing.T, clientSet versioned.Interface) *appsv1.DeploymentConfig {
+	dummyDeploy := &appsv1.DeploymentConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      dummyProxlessName,
 			Namespace: dummyNamespaceName,
 			Labels:    map[string]string{utils.LabelDeploymentProxless: "true"},
 		},
-		Spec: appsv1.DeploymentSpec{
-			Replicas: pointer.Int32Ptr(0),
+		Spec: appsv1.DeploymentConfigSpec{
+			Replicas: 0,
 		},
-		Status: appsv1.DeploymentStatus{
+		Status: appsv1.DeploymentConfigStatus{
 			AvailableReplicas: 0,
 		},
 	}
-	deploy, err := clientSet.AppsV1().Deployments(dummyNamespaceName).Create(
+	deploy, err := clientSet.AppsV1().DeploymentConfigs(dummyNamespaceName).Create(
 		context.TODO(), dummyDeploy, metav1.CreateOptions{})
 	assert.NoError(t, err)
 	return deploy
 }
 
-func helper_createRandomDeployment(t *testing.T, clientSet kubernetes.Interface) *appsv1.Deployment {
-	dummyDeploy := &appsv1.Deployment{
+func helper_createRandomDeployment(t *testing.T, clientSet versioned.Interface) *appsv1.DeploymentConfig {
+	dummyDeploy := &appsv1.DeploymentConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      dummyNonProxlessName,
 			Namespace: dummyNamespaceName,
 		},
-		Spec: appsv1.DeploymentSpec{
-			Replicas: pointer.Int32Ptr(1),
+		Spec: appsv1.DeploymentConfigSpec{
+			Replicas: 1,
 		},
-		Status: appsv1.DeploymentStatus{
+		Status: appsv1.DeploymentConfigStatus{
 			AvailableReplicas: 1,
 		},
 	}
-	deploy, err := clientSet.AppsV1().Deployments(dummyNamespaceName).Create(
+	deploy, err := clientSet.AppsV1().DeploymentConfigs(dummyNamespaceName).Create(
 		context.TODO(), dummyDeploy, metav1.CreateOptions{})
 	assert.NoError(t, err)
 	return deploy
 }
 
 func helper_updateDeployment(
-	t *testing.T, clientSet kubernetes.Interface, deploy *appsv1.Deployment) *appsv1.Deployment {
-	deployUpdated, err := clientSet.AppsV1().Deployments(dummyNamespaceName).Update(
+	t *testing.T, clientSet versioned.Interface, deploy *appsv1.DeploymentConfig) *appsv1.DeploymentConfig {
+
+	deployUpdated, err := clientSet.AppsV1().DeploymentConfigs(dummyNamespaceName).Update(
 		context.TODO(), deploy, metav1.UpdateOptions{})
 	assert.NoError(t, err)
 	return deployUpdated

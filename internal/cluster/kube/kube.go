@@ -1,10 +1,10 @@
 package kube
 
 import (
-	"flag"
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/clientcmd"
+	"kube-proxless/internal/cluster"
 	"kube-proxless/internal/logger"
 	"time"
 )
@@ -14,18 +14,16 @@ type kubeCluster struct {
 	servicesInformerResyncInterval int
 }
 
-func NewCluster(clientSet kubernetes.Interface) *kubeCluster {
+func NewCluster(clientSet kubernetes.Interface, servicesInformerResyncInterval int) cluster.Interface {
 	return &kubeCluster{
 		clientSet:                      clientSet,
-		servicesInformerResyncInterval: 60,
+		servicesInformerResyncInterval: servicesInformerResyncInterval,
 	}
 }
 
 func NewKubeClient(kubeConfigPath string) kubernetes.Interface {
-	kubeConfigString := flag.String("kubeconfig", kubeConfigPath, "(optional) absolute path to the kubeconfig file")
-
 	// use the current context in kubeconfig
-	kubeConf, err := clientcmd.BuildConfigFromFlags("", *kubeConfigString)
+	kubeConf, err := clientcmd.BuildConfigFromFlags("", kubeConfigPath)
 	if err != nil {
 		logger.Panicf(err, "Could not find kubeconfig file at %s", kubeConfigPath)
 	}
@@ -47,7 +45,6 @@ func (k *kubeCluster) RunServicesEngine(
 	upsertMemory func(id, name, port, deployName, namespace string, domains []string) error,
 	deleteRouteFromMemory func(id string) error,
 ) {
-	// TODO make the resync is configurable
 	runServicesInformer(
 		k.clientSet, namespaceScope, proxlessService, proxlessNamespace, k.servicesInformerResyncInterval,
 		upsertMemory, deleteRouteFromMemory)

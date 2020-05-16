@@ -1,6 +1,6 @@
 # Proxless
 
-[proxless](https://github.com/bappr/kube-proxless) is an opensource proxy that use services annotations to scale up and down your deployments when they are not used.
+[proxless](https://github.com/bappr/proxless) is an opensource proxy that use services annotations to scale up and down your deployments when they are not used.
 
 To use it, add the `proxless/domains` and the `proxless/deployment` annotation to your Service resources.
 
@@ -20,6 +20,12 @@ To install the chart with the release name `my-release`:
 
 ```console
 $ helm install --name my-release .
+```
+
+### For Openshift
+
+```console
+$ helm install . --name my-release --set cluster=OPENSHIFT
 ```
 
 The command deploys proxless on the Kubernetes cluster in the default configuration. The [configuration](#configuration) section lists the parameters that can be configured during installation.
@@ -48,6 +54,7 @@ Parameter | Description | Default
 `logLevel` | proxless log level | `DEBUG`
 `port` | port proxless is listening to | `8080`
 `namespaceScoped` | is proxless working within a single namespace or across multiple namespaces | `true`
+`cluster` | `KUBERNETES` or `OPENSHIFT` | `KUBERNETES`
 `env.MAX_CONS_PER_HOST` | max connections proxless can forward for a single host. More info [here](https://godoc.org/github.com/valyala/fasthttp#Client) | `10000`
 `env.SERVERLESS_TTL_SECONDS` | time in seconds proxless waits before scaling down the app | `30`
 `env.DEPLOYMENT_READINESS_TIMEOUT_SECONDS` | time in seconds proxless waits for the deployment to be ready when scaling up the app | false
@@ -61,8 +68,7 @@ Parameter | Description | Default
 
 These parameters can be passed via Helm's `--set` option
 ```console
-$ helm install . --name my-release \
-    --set service.type=LoadBalancer
+$ helm install . --name my-release --set service.type=LoadBalancer
 ```
 
 _Notes: Enabling `ingress` is useless since it will proxy nowhere_

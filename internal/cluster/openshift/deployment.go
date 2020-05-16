@@ -1,31 +1,31 @@
-package kube
+package openshift
 
 import (
 	"context"
 	"fmt"
-	appsv1 "k8s.io/api/apps/v1"
+	appsv1 "github.com/openshift/api/apps/v1"
+	"github.com/openshift/client-go/apps/clientset/versioned"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/utils/pointer"
 	utils2 "kube-proxless/internal/cluster/utils"
 	"kube-proxless/internal/logger"
 	"kube-proxless/internal/utils"
 	"time"
 )
 
-func getDeployment(clientSet kubernetes.Interface, name, namespace string) (*appsv1.Deployment, error) {
-	return clientSet.AppsV1().Deployments(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+func getDeployment(clientSet versioned.Interface, name, namespace string) (*appsv1.DeploymentConfig, error) {
+	return clientSet.AppsV1().DeploymentConfigs(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 }
 
 func updateDeployment(
-	clientSet kubernetes.Interface, deploy *appsv1.Deployment, namespace string) (*appsv1.Deployment, error) {
-	return clientSet.AppsV1().Deployments(namespace).Update(context.TODO(), deploy, metav1.UpdateOptions{})
+	clientSet versioned.Interface, deploy *appsv1.DeploymentConfig, namespace string) (*appsv1.DeploymentConfig, error) {
+	return clientSet.AppsV1().DeploymentConfigs(namespace).Update(context.TODO(), deploy, metav1.UpdateOptions{})
 }
 
 func listDeployments(
-	clientSet kubernetes.Interface, namespace string, options metav1.ListOptions) ([]appsv1.Deployment, error) {
-	deploys, err := clientSet.AppsV1().Deployments(namespace).List(context.TODO(), options)
+	clientSet versioned.Interface, namespace string, options metav1.ListOptions) ([]appsv1.DeploymentConfig, error) {
+
+	deploys, err := clientSet.AppsV1().DeploymentConfigs(namespace).List(context.TODO(), options)
 
 	if err != nil {
 		return nil, err
@@ -34,15 +34,15 @@ func listDeployments(
 	return deploys.Items, nil
 }
 
-func scaleUpDeployment(clientSet kubernetes.Interface, name, namespace string, timeout int) error {
+func scaleUpDeployment(clientSet versioned.Interface, name, namespace string, timeout int) error {
 	deploy, err := getDeployment(clientSet, name, namespace)
 	if err != nil {
 		logger.Errorf(err, "Could not get the deployment %s.%s", name, namespace)
 		return err
 	}
 
-	if *deploy.Spec.Replicas == 0 {
-		deploy.Spec.Replicas = pointer.Int32Ptr(1) // TODO make this configurable
+	if deploy.Spec.Replicas == 0 {
+		deploy.Spec.Replicas = 1 // TODO make this configurable
 
 		if _, err := updateDeployment(clientSet, deploy, namespace); err != nil {
 			logger.Errorf(err, "Could not scale up the deployment %s.%s", name, namespace)
@@ -55,7 +55,7 @@ func scaleUpDeployment(clientSet kubernetes.Interface, name, namespace string, t
 	}
 }
 
-func waitForDeploymentAvailable(clientSet kubernetes.Interface, name, namespace string, timeout int) error {
+func waitForDeploymentAvailable(clientSet versioned.Interface, name, namespace string, timeout int) error {
 	now := time.Now()
 	err := wait.PollImmediate(time.Second, time.Duration(timeout)*time.Second, func() (bool, error) {
 		if deploy, err := getDeployment(clientSet, name, namespace); err != nil {
@@ -76,7 +76,7 @@ func waitForDeploymentAvailable(clientSet kubernetes.Interface, name, namespace 
 }
 
 func scaleDownDeployments(
-	kubeClient kubernetes.Interface,
+	clientSet versioned.Interface,
 	namespaceScope string,
 	mustScaleDown func(deployName, namespace string) (bool, time.Duration, error),
 ) []error {
@@ -84,7 +84,7 @@ func scaleDownDeployments(
 		LabelSelector: fmt.Sprintf("%s=%s", utils2.LabelDeploymentProxless, "true"),
 	}
 
-	deploys, err := listDeployments(kubeClient, namespaceScope, labelSelector)
+	deploys, err := listDeployments(clientSet, namespaceScope, labelSelector)
 
 	var errs []error
 	if err != nil {
@@ -95,12 +95,12 @@ func scaleDownDeployments(
 		errs = append(errs, err)
 	} else {
 		for _, deploy := range deploys {
-			if *deploy.Spec.Replicas > int32(0) {
+			if deploy.Spec.Replicas > int32(0) {
 				scaleDown, timeIdle, _ := mustScaleDown(deploy.Name, deploy.Namespace)
 				if scaleDown {
-					deploy.Spec.Replicas = pointer.Int32Ptr(0)
+					deploy.Spec.Replicas = 0
 
-					_, err := updateDeployment(kubeClient, &deploy, deploy.Namespace)
+					_, err := updateDeployment(clientSet, &deploy, deploy.Namespace)
 					if err != nil {
 						logger.Errorf(err, "Could not scale down deployment %s.%s", deploy.Name, deploy.Namespace)
 						errs = append(errs, err)
@@ -115,7 +115,7 @@ func scaleDownDeployments(
 	return errs
 }
 
-func labelDeployment(clientSet kubernetes.Interface, name, namespace string) (*appsv1.Deployment, error) {
+func labelDeployment(clientSet versioned.Interface, name, namespace string) (*appsv1.DeploymentConfig, error) {
 	labels := map[string]string{utils2.LabelDeploymentProxless: "true"}
 
 	deploy, err := getDeployment(clientSet, name, namespace)
@@ -132,7 +132,8 @@ func labelDeployment(clientSet kubernetes.Interface, name, namespace string) (*a
 	return updateDeployment(clientSet, deploy, namespace)
 }
 
-func removeDeploymentLabel(clientSet kubernetes.Interface, name, namespace string) (*appsv1.Deployment, error) {
+func removeDeploymentLabel(
+	clientSet versioned.Interface, name, namespace string) (*appsv1.DeploymentConfig, error) {
 	deploy, err := getDeployment(clientSet, name, namespace)
 
 	if err != nil {

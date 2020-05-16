@@ -5,6 +5,8 @@
 
 **No need a CRD, no need a huge stack, the proxless deployment are the only things u need.**
 
+**Compatible with Openshift**
+
 ## Disclaimer
 
 Proxless is provided in alpha mode.  
@@ -75,7 +77,7 @@ $ curl -H "Host: example.io" localhost:8080
 {"message":"Hello"}
 ```
 
-More information [here](example/kubectl/README.md)
+More information [here](example/README.md)
 
 ## Development Setup
 

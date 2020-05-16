@@ -1,13 +1,12 @@
-package kube
+package utils
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"kube-proxless/internal/cluster"
 	"kube-proxless/internal/utils"
 	"testing"
 )
 
-func Test_genDomains(t *testing.T) {
+func Test_GenDomains(t *testing.T) {
 	testCases := []struct {
 		domains, svcName, namespace string
 		namespaceScoped             bool
@@ -59,7 +58,7 @@ func Test_genDomains(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		got := genDomains(tc.domains, tc.svcName, tc.namespace, tc.namespaceScoped)
+		got := GenDomains(tc.domains, tc.svcName, tc.namespace, tc.namespaceScoped)
 
 		if !utils.CompareUnorderedArray(tc.want, got) {
 			t.Errorf("genDomains(%s, %s, %s, %t) = %s; want = %s",
@@ -68,34 +67,34 @@ func Test_genDomains(t *testing.T) {
 	}
 }
 
-func Test_isAnnotationsProxlessCompatible(t *testing.T) {
+func Test_IsAnnotationsProxlessCompatible(t *testing.T) {
 	testCases := []struct {
 		annotations map[string]string
 		want        bool
 	}{
 		{
 			map[string]string{
-				cluster.AnnotationServiceDomainKey: "domain",
-				cluster.AnnotationServiceDeployKey: "deploy",
+				AnnotationServiceDomainKey: "domain",
+				AnnotationServiceDeployKey: "deploy",
 			},
 			true,
 		},
 		{
 			map[string]string{
-				cluster.AnnotationServiceDomainKey: "domain",
+				AnnotationServiceDomainKey: "domain",
 			},
 			false,
 		},
 		{
 			map[string]string{
-				cluster.AnnotationServiceDeployKey: "deploy",
+				AnnotationServiceDeployKey: "deploy",
 			},
 			true,
 		},
 	}
 
 	for _, tc := range testCases {
-		got := isAnnotationsProxlessCompatible(metav1.ObjectMeta{Annotations: tc.annotations})
+		got := IsAnnotationsProxlessCompatible(metav1.ObjectMeta{Annotations: tc.annotations})
 
 		if got != tc.want {
 			t.Errorf("isAnnotationsProxlessCompatible(%v) = %t; want = %t",

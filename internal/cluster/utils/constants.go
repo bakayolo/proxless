@@ -1,4 +1,4 @@
-package cluster
+package utils
 
 const (
 	LabelDeploymentProxless = "proxless"

@@ -3,7 +3,7 @@ package kube
 import (
 	"github.com/stretchr/testify/assert"
 	"k8s.io/client-go/kubernetes/fake"
-	"kube-proxless/internal/cluster"
+	utils2 "kube-proxless/internal/cluster/utils"
 	"kube-proxless/internal/utils"
 	"testing"
 )
@@ -51,7 +51,7 @@ func Test_labelDeployment(t *testing.T) {
 	deploy, err = labelDeployment(clientSet, dummyNonProxlessName, dummyNamespaceName)
 	assert.NoError(t, err)
 
-	wantLabels := map[string]string{cluster.LabelDeploymentProxless: "true"}
+	wantLabels := map[string]string{utils2.LabelDeploymentProxless: "true"}
 	if !utils.CompareMap(deploy.Labels, wantLabels) {
 		t.Errorf("labelDeployment(); labels = %s, wantLabels = %s", deploy.Labels, wantLabels)
 	}
