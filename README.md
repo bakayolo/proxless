@@ -35,6 +35,10 @@ Check the [documentation](docs) for more information.
 
 ## Quickstart
 
+### Requirements
+
+Tested with `K8S 1.14+`
+
 ### Deploy Proxless
 
 #### Kubectl
