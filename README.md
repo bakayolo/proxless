@@ -3,7 +3,7 @@
 > Reduce your kubernetes cost by making all your deployments **on-demand** with Proxless.  
 > Deploy Proxless in front of your services and it will scale down the associated deployments when they are not requested and scale them back up when they are.
 
-**No need a CRD, no need a huge stack, the proxless deployment is the only things u need.**
+**No need a CRD, no need a huge stack, the proxless deployment is the only thing u need.**
 
 **Compatible with Openshift**
 
