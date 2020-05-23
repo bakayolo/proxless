@@ -1,9 +1,11 @@
 # Proxless
 
-> Reduce your kubernetes cost by making all your deployments **on-demand** with Proxless
+> Reduce your kubernetes cost by making all your deployments **on-demand** with Proxless.  
 > Deploy Proxless in front of your services and it will scale down the associated deployments when they are not requested and scale them back up when they are.
 
-**No need a CRD, no need a huge stack, the proxless deployment are the only things u need.**
+**No need a CRD, no need a huge stack, the proxless deployment is the only thing u need.**
+
+**Compatible with Openshift**
 
 ## Disclaimer
 
@@ -33,7 +35,13 @@ Check the [documentation](docs) for more information.
 
 ## Quickstart
 
-### Kubectl
+### Requirements
+
+Tested with `K8S 1.14+`
+
+### Deploy Proxless
+
+#### Kubectl
 
 ```shell script
 $ kubectl apply -f deploy/kubectl/proxless.yaml
@@ -42,16 +50,27 @@ $ kubectl apply -f deploy/kubectl/proxless.yaml
 This will deploy a proxless scoped to your namespace.  
 Use the helm chart below to make it cluster wide.
 
-### Helm
+#### Openshift
+
+```shell script
+$ oc apply -f deploy/oc/proxless.yaml
+```
+
+This will deploy a proxless scoped to your namespace.  
+Use the helm chart below to make it cluster wide.
+
+#### Helm
 
 You can use our [helm chart](deploy/helm/README.md) for a more configurable approach.  
 With the chart, you will be able to configure the High Availability and choose if you want proxless to be installed cluster wide or not.
 
-## Test it
+### Deploy Example
 
 Deploy the [example](example/kubectl/example.yaml).  
 It's a basic nginx pod doing a `proxy_pass` to a hello-world api pod.  
 By default, the 2 pods are scaled down.  
+
+#### Kubectl
 
 ```shell script
 $ kubectl apply -f example/kubectl/example.yaml
@@ -65,7 +84,21 @@ Forwarding from 127.0.0.1:8080 -> 80
 Forwarding from [::1]:8080 -> 80
 ```
 
-Call it
+#### Openshift
+
+```shell script
+$ oc apply -f example/oc/example.yaml
+```
+
+Port-forward to your proxless deployment.
+
+```shell script
+$ oc port-forward svc/proxless 8080:8080
+Forwarding from 127.0.0.1:8080 -> 8080
+Forwarding from [::1]:8080 -> 8080
+```
+
+### Test it
 
 ```shell script
 $ curl -H "Host: www.example.io" localhost:8080
@@ -75,7 +108,7 @@ $ curl -H "Host: example.io" localhost:8080
 {"message":"Hello"}
 ```
 
-More information [here](example/kubectl/README.md)
+More information [here](example/README.md)
 
 ## Development Setup
 

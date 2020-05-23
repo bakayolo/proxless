@@ -1,9 +1,12 @@
-package kube
+// TODO this is almost a COPY/PASTE of `kube/service.go` - see how we wanna deal with it
+
+package openshift
 
 import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/openshift/client-go/apps/clientset/versioned"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -15,6 +18,7 @@ import (
 
 func createProxlessService(
 	clientSet kubernetes.Interface, appSvc, appNs, proxlessSvc, proxlessNs string) (*corev1.Service, error) {
+
 	svc, err := clientSet.CoreV1().Services(appNs).Create(context.TODO(), &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        clusterutils.GenServiceToAppName(appSvc),
@@ -54,14 +58,14 @@ func getPortFromServicePorts(ports []corev1.ServicePort) string {
 }
 
 func addServiceToMemory(
-	clientset kubernetes.Interface, svc *corev1.Service, namespaceScoped bool,
-	proxlessSvc, proxlessNamespace string,
+	kubeClientset kubernetes.Interface, ocClientSet versioned.Interface,
+	svc *corev1.Service, namespaceScoped bool, proxlessSvc, proxlessNamespace string,
 	upsertMemory func(id, name, port, deployName, namespace string, domains []string) error,
 ) {
 	if clusterutils.IsAnnotationsProxlessCompatible(svc.ObjectMeta) {
 		deployName := svc.Annotations[clusterutils.AnnotationServiceDeployKey]
 
-		_, err := createProxlessService(clientset, svc.Name, svc.Namespace, proxlessSvc, proxlessNamespace)
+		_, err := createProxlessService(kubeClientset, svc.Name, svc.Namespace, proxlessSvc, proxlessNamespace)
 
 		if err != nil {
 			logger.Errorf(err, "Error creating proxless service for %s.%s", svc.Name, svc.Namespace)
@@ -69,7 +73,7 @@ func addServiceToMemory(
 			// it will be relabel after the informer resync
 		}
 
-		_, err = labelDeployment(clientset, deployName, svc.Namespace)
+		_, err = labelDeployment(ocClientSet, deployName, svc.Namespace)
 
 		if err != nil {
 			logger.Errorf(err, "Error labelling deployment %s.%s", deployName, svc.Namespace)
@@ -92,16 +96,17 @@ func addServiceToMemory(
 }
 
 func removeServiceFromMemory(
-	clientset kubernetes.Interface, svc *corev1.Service,
+	kubeClientset kubernetes.Interface, ocClientSet versioned.Interface,
+	svc *corev1.Service,
 	deleteRouteFromMemory func(id string) error,
 ) {
 	if clusterutils.IsAnnotationsProxlessCompatible(svc.ObjectMeta) {
 		deployName := svc.Annotations[clusterutils.AnnotationServiceDeployKey]
 
 		// we don't process the error here - the deployment might have been delete with the service
-		_, _ = removeDeploymentLabel(clientset, deployName, svc.Namespace)
+		_, _ = removeDeploymentLabel(ocClientSet, deployName, svc.Namespace)
 
-		_ = deleteProxlessService(clientset, svc.Name, svc.Namespace)
+		_ = deleteProxlessService(kubeClientset, svc.Name, svc.Namespace)
 
 		err := deleteRouteFromMemory(string(svc.UID))
 
@@ -114,8 +119,8 @@ func removeServiceFromMemory(
 }
 
 func updateServiceMemory(
-	clientset kubernetes.Interface, oldSvc, newSvc *corev1.Service, namespaceScoped bool,
-	proxlessService, proxlessNamespace string,
+	kubeClientset kubernetes.Interface, ocClientSet versioned.Interface,
+	oldSvc, newSvc *corev1.Service, namespaceScoped bool, proxlessService, proxlessNamespace string,
 	upsertMemory func(id, name, port, deployName, namespace string, domains []string) error,
 	deleteRouteFromMemory func(id string) error,
 ) {
@@ -124,7 +129,7 @@ func updateServiceMemory(
 		oldDeployName := oldSvc.Annotations[clusterutils.AnnotationServiceDeployKey]
 
 		if oldDeployName != newSvc.Annotations[clusterutils.AnnotationServiceDeployKey] {
-			_, err := removeDeploymentLabel(clientset, oldDeployName, oldSvc.Namespace)
+			_, err := removeDeploymentLabel(ocClientSet, oldDeployName, oldSvc.Namespace)
 			if err != nil {
 				logger.Errorf(err, "error remove proxless label from deployment %s.%s",
 					oldDeployName, oldSvc.Namespace)
@@ -132,12 +137,12 @@ func updateServiceMemory(
 		}
 
 		// the `addServiceToMemory` is idempotent so we can reuse it in the update
-		addServiceToMemory(clientset, newSvc, namespaceScoped, proxlessService, proxlessNamespace, upsertMemory)
+		addServiceToMemory(kubeClientset, ocClientSet, newSvc, namespaceScoped, proxlessService, proxlessNamespace, upsertMemory)
 	} else if !clusterutils.IsAnnotationsProxlessCompatible(oldSvc.ObjectMeta) &&
 		clusterutils.IsAnnotationsProxlessCompatible(newSvc.ObjectMeta) { // adding new service
-		addServiceToMemory(clientset, newSvc, namespaceScoped, proxlessService, proxlessNamespace, upsertMemory)
+		addServiceToMemory(kubeClientset, ocClientSet, newSvc, namespaceScoped, proxlessService, proxlessNamespace, upsertMemory)
 	} else if clusterutils.IsAnnotationsProxlessCompatible(oldSvc.ObjectMeta) &&
 		!clusterutils.IsAnnotationsProxlessCompatible(newSvc.ObjectMeta) { // removing service
-		removeServiceFromMemory(clientset, oldSvc, deleteRouteFromMemory)
+		removeServiceFromMemory(kubeClientset, ocClientSet, oldSvc, deleteRouteFromMemory)
 	}
 }

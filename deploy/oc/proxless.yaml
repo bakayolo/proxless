@@ -20,7 +20,7 @@ spec:
             - name: LOG_LEVEL
               value: DEBUG
             - name: PORT
-              value: "80"
+              value: "8080"
             - name: NAMESPACE_SCOPED
               value: "true"
             - name: PROXLESS_SERVICE
@@ -36,19 +36,21 @@ spec:
               value: "10000"
             - name: SERVERLESS_TTL_SECONDS
               value: "30"
+            - name: CLUSTER
+              value: OPENSHIFT
           image: bappr/proxless:latest
           imagePullPolicy: Always
           livenessProbe:
             tcpSocket:
-              port: 80
+              port: 8080
           name: main
           ports:
-            - containerPort: 80
+            - containerPort: 8080
               name: http
               protocol: TCP
           readinessProbe:
             tcpSocket:
-              port: 80
+              port: 8080
       serviceAccountName: proxless
 ---
 apiVersion: v1
@@ -58,7 +60,7 @@ metadata:
 spec:
   ports:
     - name: "http"
-      port: 80
+      port: 8080
       protocol: TCP
   selector:
     app: proxless
@@ -97,9 +99,9 @@ rules:
       - create
       - delete
   - apiGroups:
-      - "apps"
+      - "apps.openshift.io"
     resources:
-      - deployments
+      - deploymentconfigs
     verbs:
       - get
       - update

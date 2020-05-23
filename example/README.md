@@ -2,7 +2,7 @@
 
 ## Requirement
 
-Follow the [main README](../../README.md) and have proxles deployed either globally or scoped in a namespace.
+Follow the [main README](../README.md) and have proxless deployed either globally or scoped in a namespace.
 
 ## Example
 
@@ -36,13 +36,23 @@ If proxless is scoped to a namespace, both service will also be accessible inter
 
 ## Deploy the example
 
+### Kubernetes
+
 ```shell script
-$ kubectl apply -f example/kubernetes/example.yaml
+$ kubectl apply -f kubectl/example.yaml
 ```
 
-## Call it
+### Openshift
+
+```shell script
+$ oc apply -f oc/example.yaml
+```
+
+## Port-Forward
 
 Port-forward to your proxless deployment.
+
+### Kubernetes
 
 ```shell script
 $ kubectl port-forward svc/proxless 8080:80
@@ -50,7 +60,17 @@ Forwarding from 127.0.0.1:8080 -> 80
 Forwarding from [::1]:8080 -> 80
 ```
 
-Call it
+### Openshift
+
+```shell script
+$ oc port-forward svc/proxless 8080:8080
+Forwarding from 127.0.0.1:8080 -> 8080
+Forwarding from [::1]:8080 -> 8080
+```
+
+## Call it
+
+### Commons
 
 ```shell script
 $ export YOUR_NAMESPACE="proxless"

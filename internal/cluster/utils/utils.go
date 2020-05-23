@@ -1,18 +1,17 @@
-package kube
+package utils
 
 import (
 	"fmt"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"kube-proxless/internal/cluster"
 	"strings"
 )
 
-func genServiceToAppName(svcName string) string {
+func GenServiceToAppName(svcName string) string {
 	return fmt.Sprintf("%s-proxless", svcName)
 }
 
-func genDomains(domains, name, namespace string, namespaceScoped bool) []string {
-	svcName := genServiceToAppName(name)
+func GenDomains(domains, name, namespace string, namespaceScoped bool) []string {
+	svcName := GenServiceToAppName(name)
 	var domainsArray []string
 	if domains != "" {
 		domainsArray = strings.Split(domains, ",")
@@ -30,6 +29,6 @@ func genDomains(domains, name, namespace string, namespaceScoped bool) []string 
 	return domainsArray
 }
 
-func isAnnotationsProxlessCompatible(meta metav1.ObjectMeta) bool {
-	return metav1.HasAnnotation(meta, cluster.AnnotationServiceDeployKey)
+func IsAnnotationsProxlessCompatible(meta metav1.ObjectMeta) bool {
+	return metav1.HasAnnotation(meta, AnnotationServiceDeployKey)
 }

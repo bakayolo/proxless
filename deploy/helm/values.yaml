@@ -4,17 +4,20 @@
 
 image:
   repository: bappr/proxless
-  tag: 0.0.1
+  tag: latest
   pullPolicy: IfNotPresent
 
 logLevel: DEBUG
-port: 80
+port: 8080
 
 ## If true, a Role will be created - Proxless is only working within the namespace
 ## If false, a ClusterRole will be created - Proxless is available globally
 namespaceScoped: false
 
 replicas: 2
+
+## one of `KUBERNETES` or `OPENSHIFT`
+cluster: KUBERNETES
 
 env:
   MAX_CONS_PER_HOST: 10000
@@ -46,3 +49,5 @@ redis:
   master:
     persistence:
       enabled: false
+  securityContext:
+    enabled: false

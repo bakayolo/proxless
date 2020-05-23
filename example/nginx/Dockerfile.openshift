@@ -5,9 +5,16 @@ WORKDIR /proxless
 RUN apk update && apk add --no-cache apache2-utils gettext
 
 ENV BACKEND_HOST="http://hello-proxless"
-ENV PORT=80
+ENV PORT=8080
 
 COPY nginx.conf .
+
+# support running as arbitrary user which belogs to the root group
+RUN chmod g+rwx /var/cache/nginx /var/run /var/log/nginx
+RUN chgrp -R root /var/cache/nginx
+
+RUN addgroup nginx root
+USER nginx
 
 ENTRYPOINT [ "sh", "-c" ]
 
