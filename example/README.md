@@ -15,10 +15,15 @@ The NGINX service annotations are
 ```yaml
 proxless/domains: "example.io,www.example.io"
 proxless/deployment: "frontend"
+proxless/ttl-seconds: "120"
+proxless/readiness-timeout-seconds: "30"
 ```
 
 So the NGINX service will be accessible through proxless using example.io and www.example.io and it will scale up and down the deployment `frontend`.  
 Additionally, it will be accessible internally through `frontend-proxless.[YOUR NAMESPACE]` and `frontend-proxless.[YOUR NAMESPACE].svc.cluster.local`.
+
+This service will not use the default configuration (environment variable) for Time To Live and Readiness Timeout.  
+The NGINX deployment will be scaled down after 120 seconds being not used and will timeout after 30 seconds when scaling up.
 
 ### Hello World service
 

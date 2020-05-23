@@ -3,6 +3,7 @@ package utils
 import (
 	"fmt"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"strconv"
 	"strings"
 )
 
@@ -31,4 +32,15 @@ func GenDomains(domains, name, namespace string, namespaceScoped bool) []string 
 
 func IsAnnotationsProxlessCompatible(meta metav1.ObjectMeta) bool {
 	return metav1.HasAnnotation(meta, AnnotationServiceDeployKey)
+}
+
+// return nil if error
+func ParseStringToIntPointer(s string) *int {
+	sInt, err := strconv.Atoi(s)
+
+	if err != nil {
+		return nil
+	}
+
+	return &sInt
 }

@@ -2,6 +2,7 @@ package memory
 
 import (
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"kube-proxless/internal/model"
 	"kube-proxless/internal/utils"
 	"testing"
@@ -23,11 +24,6 @@ func TestMemoryMap_UpsertMap_Create(t *testing.T) {
 	testCases := []upsertTestCaseStruct{
 		{"createTestCase0", "svc0", "80", "deploy0", "ns0", []string{"example.0"}, false},
 		{"createTestCase1", "svc1", "", "deploy1", "ns1", []string{"example.1"}, false},
-		{"", "svc", "80", "deploy2", "ns2", []string{"example.2"}, true},
-		{"createTestCase2", "", "80", "deploy3", "ns3", []string{"example.3"}, true},
-		{"createTestCase3", "svc3", "80", "", "ns4", []string{"example.4"}, true},
-		{"createTestCase4", "svc4", "80", "deploy4", "", []string{"example5"}, true},
-		{"createTestCase5", "svc5", "80", "deploy5", "ns5", nil, true},
 	}
 
 	upsertMemoryMapHelper(testCases, t, s)
@@ -42,7 +38,7 @@ func TestMemoryMap_UpsertMemoryMap_Update(t *testing.T) {
 		{"updateTestCase0", "svc0", "80", "deploy0.1", "ns", []string{"example.0.0", "example.0.1"}, false},
 		{"updateTestCase1", "svc1", "", "deploy1", "ns1", []string{"example.1.0"}, false},
 		{"updateTestCase1", "svc1", "8080", "deploy1", "ns1", []string{"example.1.0"}, false},
-		{"updateTestCase1", "svc1", "", "deploy1", "ns1", []string{"example.1.0"}, true},
+		{"updateTestCase1", "svc1", "", "deploy1", "ns1", []string{"example.1.0"}, false},
 		{"updateTestCase2", "svc2", "8080", "deploy2", "ns1", []string{"example.1.0"}, true},
 		{"updateTestCase2", "svc2", "8080", "deploy2", "ns1", []string{"example.1.1"}, false},
 	}
@@ -65,7 +61,12 @@ func TestMemoryMap_genDeploymentKey(t *testing.T) {
 func TestMemoryMap_CheckDeployAndDomainsOwnership(t *testing.T) {
 	s := NewMemoryMap()
 
-	_ = s.UpsertMemoryMap("0", "svc0", "", "deploy0", "ns0", []string{"example.0.0"})
+	route, err := model.NewRoute(
+		"0", "svc0", "", "deploy0", "ns0", []string{"example.0.0"}, nil, nil)
+	assert.NoError(t, err)
+
+	err = s.UpsertMemoryMap(route)
+	assert.NoError(t, err)
 
 	testCases := []struct {
 		id, deploy, ns string
@@ -92,7 +93,10 @@ func TestMemoryMap_CheckDeployAndDomainsOwnership(t *testing.T) {
 func TestMemoryMap_cleanOldDeploymentFromMap(t *testing.T) {
 	s := NewMemoryMap()
 
-	r0, _ := model.NewRoute("0", "svc0", "", "deploy0", "ns0", []string{"example.0.0"})
+	r0, err :=
+		model.NewRoute("0", "svc0", "", "deploy0", "ns0", []string{"example.0.0"}, nil, nil)
+	assert.NoError(t, err)
+
 	createRoute(s, r0)
 
 	testCases := []struct {
@@ -120,7 +124,10 @@ func TestMemoryMap_cleanOldDeploymentFromMap(t *testing.T) {
 func TestMemoryMap_UpdateLastUse(t *testing.T) {
 	s := NewMemoryMap()
 
-	r0, _ := model.NewRoute("0", "svc0", "", "deploy0", "ns0", []string{"example.0.0"})
+	r0, err :=
+		model.NewRoute("0", "svc0", "", "deploy0", "ns0", []string{"example.0.0"}, nil, nil)
+	assert.NoError(t, err)
+
 	createRoute(s, r0)
 
 	lastUsed := r0.GetLastUsed()
@@ -149,7 +156,7 @@ func TestMemoryMap_UpdateLastUse(t *testing.T) {
 func TestMemoryMap_DeleteRoute(t *testing.T) {
 	s := NewMemoryMap()
 
-	r0, _ := model.NewRoute("0", "svc0", "", "deploy0", "ns0", []string{"example.0.0"})
+	r0, _ := model.NewRoute("0", "svc0", "", "deploy0", "ns0", []string{"example.0.0"}, nil, nil)
 	createRoute(s, r0)
 
 	testCases := []struct {

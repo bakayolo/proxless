@@ -2,6 +2,7 @@ package model
 
 import (
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
 	"kube-proxless/internal/utils"
 	"testing"
 	"time"
@@ -103,7 +104,7 @@ func TestNewRoute(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		got, errGot := NewRoute(tc.id, tc.svc, tc.port, tc.deploy, tc.ns, tc.domains)
+		got, errGot := NewRoute(tc.id, tc.svc, tc.port, tc.deploy, tc.ns, tc.domains, nil, nil)
 
 		if tc.errWanted != (errGot != nil) {
 			t.Errorf("CreateRoute(tc %s) = %v, errWanted = %t", tc.id, errGot, tc.errWanted)
@@ -329,4 +330,36 @@ func TestRoute_SetDomains(t *testing.T) {
 			t.Errorf("SetDomains(%s) != want %s", route.domains, tc.param)
 		}
 	}
+}
+
+func TestRoute_GetReadinessTimeoutSeconds(t *testing.T) {
+	route := Route{}
+	readinessTimeoutSeconds := 60
+	route.readinessTimeoutSeconds = &readinessTimeoutSeconds
+
+	assert.Equal(t, 60, *route.GetReadinessTimeoutSeconds())
+}
+
+func TestRoute_GetTTLSeconds(t *testing.T) {
+	route := Route{}
+	ttlSeconds := 120
+	route.ttlSeconds = &ttlSeconds
+
+	assert.Equal(t, 120, *route.GetTTLSeconds())
+}
+
+func TestRoute_SetTTLSeconds(t *testing.T) {
+	route := Route{}
+	ttlSeconds := 120
+	route.SetTTLSeconds(&ttlSeconds)
+
+	assert.Equal(t, 120, *route.ttlSeconds)
+}
+
+func TestRoute_SetReadinessTimeoutSeconds(t *testing.T) {
+	route := Route{}
+	readinessTimeoutSeconds := 60
+	route.SetReadinessTimeoutSeconds(&readinessTimeoutSeconds)
+
+	assert.Equal(t, 60, *route.readinessTimeoutSeconds)
 }

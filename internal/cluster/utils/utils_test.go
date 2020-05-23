@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"kube-proxless/internal/utils"
 	"testing"
@@ -101,4 +102,27 @@ func Test_IsAnnotationsProxlessCompatible(t *testing.T) {
 				tc.annotations, got, tc.want)
 		}
 	}
+}
+
+func TestParseStringToIntPointer(t *testing.T) {
+	testCases := []struct {
+		s    string
+		want *int
+	}{
+		{"", nil},
+		{"notanumber", nil},
+		{"60", parseIntToPointer(60)},
+	}
+
+	for _, tc := range testCases {
+		if tc.want != nil {
+			assert.Equal(t, *tc.want, *ParseStringToIntPointer(tc.s))
+		} else {
+			assert.Equal(t, tc.want, ParseStringToIntPointer(tc.s))
+		}
+	}
+}
+
+func parseIntToPointer(i int) *int {
+	return &i
 }

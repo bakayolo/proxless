@@ -5,6 +5,7 @@ import (
 	"kube-proxless/internal/cluster/fake"
 	"kube-proxless/internal/config"
 	"kube-proxless/internal/memory"
+	"kube-proxless/internal/model"
 	"kube-proxless/internal/utils"
 	"testing"
 	"time"
@@ -17,11 +18,14 @@ func TestController_GetRouteByDomainFromMemory(t *testing.T) {
 	_, err := c.GetRouteByDomainFromMemory("mock.io")
 	assert.Error(t, err)
 
+	route, err := model.NewRoute(
+		"mock-id", "mock-svc", "", "mock-deploy", "mock-ns",
+		[]string{"mock.io"},
+		nil, nil)
+	assert.NoError(t, err)
+
 	// add route in memory and test again
-	assert.NoError(
-		t,
-		c.memory.UpsertMemoryMap(
-			"mock-id", "mock-svc", "", "mock-deploy", "mock-ns", []string{"mock.io"}))
+	assert.NoError(t, c.memory.UpsertMemoryMap(route))
 
 	r, err := c.GetRouteByDomainFromMemory("mock.io")
 	assert.NoError(t, err)
@@ -38,11 +42,14 @@ func TestController_UpdateLastUseMemory(t *testing.T) {
 	// error - memory is empty
 	assert.Error(t, c.UpdateLastUsedInMemory("mock.io"))
 
+	route, err := model.NewRoute(
+		"mock-id", "mock-svc", "", "mock-deploy", "mock-ns",
+		[]string{"mock.io"},
+		nil, nil)
+	assert.NoError(t, err)
+
 	// add route in memory and test again
-	assert.NoError(
-		t,
-		c.memory.UpsertMemoryMap(
-			"mock-id", "mock-svc", "", "mock-deploy", "mock-ns", []string{"mock.io"}))
+	assert.NoError(t, c.memory.UpsertMemoryMap(route))
 
 	routeBefore, err := c.GetRouteByDomainFromMemory("mock.io")
 	assert.NoError(t, err)
@@ -66,9 +73,9 @@ func TestController_ScaleUpDeployment(t *testing.T) {
 
 	// check the implemention of the fake client to understand the test
 
-	assert.NoError(t, c.ScaleUpDeployment("mock-deploy", "mock-ns"))
+	assert.NoError(t, c.ScaleUpDeployment("mock-deploy", "mock-ns", nil))
 
-	assert.Error(t, c.ScaleUpDeployment("deploy", "ns"))
+	assert.Error(t, c.ScaleUpDeployment("deploy", "ns", nil))
 }
 
 func TestController_scaleDownDeployments(t *testing.T) {
@@ -77,11 +84,14 @@ func TestController_scaleDownDeployments(t *testing.T) {
 	// error - memory is empty / route not found
 	helper_assertAtLeastOneError(t, scaleDownDeployments(c))
 
+	route, err := model.NewRoute(
+		"mock-id", "mock-svc", "", "mock-deploy", "mock-ns",
+		[]string{"mock.io"},
+		nil, nil)
+	assert.NoError(t, err)
+
 	// add route in memory and test again
-	assert.NoError(
-		t,
-		c.memory.UpsertMemoryMap(
-			"mock-id", "mock-svc", "", "mock-deploy", "mock-ns", []string{"mock.io"}))
+	assert.NoError(t, c.memory.UpsertMemoryMap(route))
 
 	helper_assertNoError(t, scaleDownDeployments(c))
 }
@@ -97,11 +107,14 @@ func TestController_RunDownScaler(t *testing.T) {
 	// make sure there is no panic when memory empty
 	time.Sleep(1 * time.Second)
 
+	route, err := model.NewRoute(
+		"mock-id", "mock-svc", "", "mock-deploy", "mock-ns",
+		[]string{"mock.io"},
+		nil, nil)
+	assert.NoError(t, err)
+
 	// add route in memorymemory and test again
-	assert.NoError(
-		t,
-		c.memory.UpsertMemoryMap(
-			"mock-id", "mock-svc", "", "mock-deploy", "mock-ns", []string{"mock.io"}))
+	assert.NoError(t, c.memory.UpsertMemoryMap(route))
 
 	// make sure there is no panic when memory had data
 	time.Sleep(1 * time.Second)

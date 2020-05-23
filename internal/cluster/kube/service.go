@@ -56,17 +56,33 @@ func getPortFromServicePorts(ports []corev1.ServicePort) string {
 func addServiceToMemory(
 	clientset kubernetes.Interface, svc *corev1.Service, namespaceScoped bool,
 	proxlessSvc, proxlessNamespace string,
-	upsertMemory func(id, name, port, deployName, namespace string, domains []string) error,
+	upsertMemory func(
+		id, name, port, deployName, namespace string, domains []string, ttlSeconds, readinessTimeoutSeconds *int) error,
 ) {
 	if clusterutils.IsAnnotationsProxlessCompatible(svc.ObjectMeta) {
 		deployName := svc.Annotations[clusterutils.AnnotationServiceDeployKey]
+		domains :=
+			clusterutils.GenDomains(svc.Annotations[clusterutils.AnnotationServiceDomainKey], svc.Name, svc.Namespace, namespaceScoped)
+		ttlSeconds := clusterutils.ParseStringToIntPointer(svc.Annotations[clusterutils.AnnotationServiceTTLSeconds])
+		readinessTimeoutSeconds := clusterutils.ParseStringToIntPointer(svc.Annotations[clusterutils.AnnotationServiceReadinessTimeoutSeconds])
 
-		_, err := createProxlessService(clientset, svc.Name, svc.Namespace, proxlessSvc, proxlessNamespace)
+		var err error
+		if serviceName, ok := svc.Annotations[clusterutils.AnnotationServiceServiceName]; ok {
+			appNs := svc.Namespace
+			svc, err = clientset.CoreV1().Services(appNs).Get(context.TODO(), serviceName, metav1.GetOptions{})
 
-		if err != nil {
-			logger.Errorf(err, "Error creating proxless service for %s.%s", svc.Name, svc.Namespace)
-			// do not return here - we don't wanna break the proxy forwarding
-			// it will be relabel after the informer resync
+			if err != nil {
+				logger.Errorf(err, "Error finding service %s.%s", serviceName, appNs)
+				return
+			}
+		} else {
+			_, err := createProxlessService(clientset, svc.Name, svc.Namespace, proxlessSvc, proxlessNamespace)
+
+			if err != nil {
+				logger.Errorf(err, "Error creating proxless service for %s.%s", svc.Name, svc.Namespace)
+				// do not return here - we don't wanna break the proxy forwarding
+				// it will be relabel after the informer resync
+			}
 		}
 
 		_, err = labelDeployment(clientset, deployName, svc.Namespace)
@@ -78,10 +94,8 @@ func addServiceToMemory(
 		}
 
 		port := getPortFromServicePorts(svc.Spec.Ports)
-		domains :=
-			clusterutils.GenDomains(svc.Annotations[clusterutils.AnnotationServiceDomainKey], svc.Name, svc.Namespace, namespaceScoped)
 
-		err = upsertMemory(string(svc.UID), svc.Name, port, deployName, svc.Namespace, domains)
+		err = upsertMemory(string(svc.UID), svc.Name, port, deployName, svc.Namespace, domains, ttlSeconds, readinessTimeoutSeconds)
 
 		if err == nil {
 			logger.Debugf("Service %s.%s added into memory", svc.Name, svc.Namespace)
@@ -98,7 +112,7 @@ func removeServiceFromMemory(
 	if clusterutils.IsAnnotationsProxlessCompatible(svc.ObjectMeta) {
 		deployName := svc.Annotations[clusterutils.AnnotationServiceDeployKey]
 
-		// we don't process the error here - the deployment might have been delete with the service
+		// we don't process the error here - the deployment might have been deleted with the service
 		_, _ = removeDeploymentLabel(clientset, deployName, svc.Namespace)
 
 		_ = deleteProxlessService(clientset, svc.Name, svc.Namespace)
@@ -116,7 +130,8 @@ func removeServiceFromMemory(
 func updateServiceMemory(
 	clientset kubernetes.Interface, oldSvc, newSvc *corev1.Service, namespaceScoped bool,
 	proxlessService, proxlessNamespace string,
-	upsertMemory func(id, name, port, deployName, namespace string, domains []string) error,
+	upsertMemory func(
+		id, name, port, deployName, namespace string, domains []string, ttlSeconds, readinessTimeoutSeconds *int) error,
 	deleteRouteFromMemory func(id string) error,
 ) {
 	if clusterutils.IsAnnotationsProxlessCompatible(oldSvc.ObjectMeta) &&

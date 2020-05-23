@@ -13,7 +13,7 @@ import (
 type Interface interface {
 	GetRouteByDomainFromMemory(domain string) (*model.Route, error)
 	UpdateLastUsedInMemory(id string) error
-	ScaleUpDeployment(name, namespace string) error
+	ScaleUpDeployment(name, namespace string, readinessTimeoutSeconds *int) error
 	RunDownScaler(checkInterval int)
 	RunServicesEngine()
 }
@@ -45,8 +45,13 @@ func (c *controller) UpdateLastUsedInMemory(id string) error {
 	return c.memory.UpdateLastUsed(id, now)
 }
 
-func (c *controller) ScaleUpDeployment(name, namespace string) error {
-	return c.cluster.ScaleUpDeployment(name, namespace, config.DeploymentReadinessTimeoutSeconds)
+func (c *controller) ScaleUpDeployment(name, namespace string, readinessTimeoutSeconds *int) error {
+	readinessTimeout := config.DeploymentReadinessTimeoutSeconds
+	if readinessTimeoutSeconds != nil {
+		readinessTimeout = *readinessTimeoutSeconds
+	}
+
+	return c.cluster.ScaleUpDeployment(name, namespace, readinessTimeout)
 }
 
 func (c *controller) RunDownScaler(checkInterval int) {
@@ -82,8 +87,14 @@ func scaleDownDeployments(c *controller) []error {
 			}
 
 			timeIdle := time.Now().Sub(route.GetLastUsed())
+
+			ttl := config.ServerlessTTLSeconds
+			if route.GetTTLSeconds() != nil {
+				ttl = *route.GetTTLSeconds()
+			}
+
 			// https://stackoverflow.com/a/41503910/5683655
-			if int64(timeIdle/time.Second) >= int64(config.ServerlessTTLSeconds) {
+			if int64(timeIdle/time.Second) >= int64(ttl) {
 				return true, timeIdle, nil
 			}
 
@@ -105,12 +116,22 @@ func (c *controller) RunServicesEngine() {
 		config.NamespaceScope,
 		config.ProxlessService,
 		config.ProxlessNamespace,
-		func(id, name, port, deployName, namespace string, domains []string) error {
+		func(
+			id, name, port, deployName, namespace string,
+			domains []string,
+			ttlSeconds, readinessTimeoutSeconds *int) error {
 			if c.pubsub != nil {
 				c.pubsub.Subscribe(id, c.memory.UpdateLastUsed)
 			}
 
-			return c.memory.UpsertMemoryMap(id, name, port, deployName, namespace, domains)
+			route, err :=
+				model.NewRoute(id, name, port, deployName, namespace, domains, ttlSeconds, readinessTimeoutSeconds)
+
+			if err != nil {
+				return err
+			}
+
+			return c.memory.UpsertMemoryMap(route)
 		},
 		func(id string) error {
 			if c.pubsub != nil {
