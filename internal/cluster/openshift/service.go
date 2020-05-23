@@ -60,7 +60,8 @@ func getPortFromServicePorts(ports []corev1.ServicePort) string {
 func addServiceToMemory(
 	kubeClientset kubernetes.Interface, ocClientSet versioned.Interface,
 	svc *corev1.Service, namespaceScoped bool, proxlessSvc, proxlessNamespace string,
-	upsertMemory func(id, name, port, deployName, namespace string, domains []string) error,
+	upsertMemory func(
+		id, name, port, deployName, namespace string, domains []string, ttlSeconds, readinessTimeoutSeconds *int) error,
 ) {
 	if clusterutils.IsAnnotationsProxlessCompatible(svc.ObjectMeta) {
 		deployName := svc.Annotations[clusterutils.AnnotationServiceDeployKey]
@@ -85,7 +86,10 @@ func addServiceToMemory(
 		domains :=
 			clusterutils.GenDomains(svc.Annotations[clusterutils.AnnotationServiceDomainKey], svc.Name, svc.Namespace, namespaceScoped)
 
-		err = upsertMemory(string(svc.UID), svc.Name, port, deployName, svc.Namespace, domains)
+		ttlSeconds := clusterutils.ParseStringToIntPointer(svc.Annotations[clusterutils.AnnotationServiceTTLSeconds])
+		readinessTimeoutSeconds := clusterutils.ParseStringToIntPointer(svc.Annotations[clusterutils.AnnotationServiceReadinessTimeoutSeconds])
+
+		err = upsertMemory(string(svc.UID), svc.Name, port, deployName, svc.Namespace, domains, ttlSeconds, readinessTimeoutSeconds)
 
 		if err == nil {
 			logger.Debugf("Service %s.%s added into memory", svc.Name, svc.Namespace)
@@ -121,7 +125,8 @@ func removeServiceFromMemory(
 func updateServiceMemory(
 	kubeClientset kubernetes.Interface, ocClientSet versioned.Interface,
 	oldSvc, newSvc *corev1.Service, namespaceScoped bool, proxlessService, proxlessNamespace string,
-	upsertMemory func(id, name, port, deployName, namespace string, domains []string) error,
+	upsertMemory func(
+		id, name, port, deployName, namespace string, domains []string, ttlSeconds, readinessTimeoutSeconds *int) error,
 	deleteRouteFromMemory func(id string) error,
 ) {
 	if clusterutils.IsAnnotationsProxlessCompatible(oldSvc.ObjectMeta) &&

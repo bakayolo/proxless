@@ -10,7 +10,7 @@ import (
 )
 
 type Interface interface {
-	UpsertMemoryMap(id, service, port, deploy, namespace string, domains []string) error
+	UpsertMemoryMap(route *model.Route) error
 	GetRouteByDomain(domain string) (*model.Route, error)
 	GetRouteByDeployment(deploy, namespace string) (*model.Route, error)
 	UpdateLastUsed(id string, t time.Time) error
@@ -29,35 +29,21 @@ func NewMemoryMap() *MemoryMap {
 	}
 }
 
-func (s *MemoryMap) UpsertMemoryMap(id, service, port, deploy, namespace string, domains []string) error {
-	if id == "" || service == "" || deploy == "" || namespace == "" || utils.IsArrayEmpty(domains) {
-		return errors.New(
-			fmt.Sprintf(
-				"Error upserting route - id = %s, svc = %s, deploy = %s, ns = %s, domains = %s - must not be empty",
-				id, service, deploy, namespace, domains),
-		)
-	}
-
+func (s *MemoryMap) UpsertMemoryMap(route *model.Route) error {
 	// error if deployment or domains are already associated to another route
-	err := checkDeployAndDomainsOwnership(s, id, deploy, namespace, domains)
+	err := checkDeployAndDomainsOwnership(
+		s, route.GetId(), route.GetDeployment(), route.GetNamespace(), route.GetDomains())
 
 	if err != nil {
 		return err
 	}
 
-	if existingRoute, ok := s.m[id]; ok {
-		if port == "" {
-			return errors.New(
-				fmt.Sprintf(
-					"Error updating route - port = %s must not be empty", port),
-			)
-		}
-
+	if existingRoute, ok := s.m[route.GetId()]; ok {
 		// /!\ this need to be on top - otherwise the data will have already been overriden in the route
 		newKeys := cleanMemoryMap(
 			s,
 			existingRoute.GetDeployment(), existingRoute.GetNamespace(), existingRoute.GetDomains(),
-			deploy, namespace, domains)
+			route.GetDeployment(), route.GetNamespace(), route.GetDomains())
 
 		// associate the route to new deployment key / domains
 		for _, k := range newKeys {
@@ -65,19 +51,15 @@ func (s *MemoryMap) UpsertMemoryMap(id, service, port, deploy, namespace string,
 		}
 
 		// TODO check the errors
-		_ = existingRoute.SetService(service)
-		_ = existingRoute.SetPort(port)
-		_ = existingRoute.SetDeployment(deploy)
-		_ = existingRoute.SetDomains(domains)
-		// route is a pointer and it's changing dynamically - no need to "persist" the change in the map
+		_ = existingRoute.SetService(route.GetService())
+		_ = existingRoute.SetPort(route.GetPort())
+		_ = existingRoute.SetDeployment(route.GetDeployment())
+		_ = existingRoute.SetDomains(route.GetDomains())
+		existingRoute.SetTTLSeconds(route.GetTTLSeconds())
+		existingRoute.SetReadinessTimeoutSeconds(route.GetReadinessTimeoutSeconds())
+		// existingRoute is a pointer and it's changing dynamically - no need to "persist" the change in the map
 	} else {
-		newRoute, err := model.NewRoute(id, service, port, deploy, namespace, domains)
-
-		if err != nil {
-			return err
-		}
-
-		createRoute(s, newRoute)
+		createRoute(s, route)
 	}
 
 	return nil

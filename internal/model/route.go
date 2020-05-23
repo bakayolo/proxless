@@ -12,16 +12,19 @@ import (
 // Use the constructor and the getter/setter to change the route
 // https://github.com/golang/go/issues/28348#issuecomment-442250333
 type Route struct {
-	id         string
-	service    string
-	port       string
-	deployment string
-	namespace  string
-	domains    []string
-	lastUsed   time.Time
+	id                      string
+	service                 string
+	port                    string
+	deployment              string
+	namespace               string
+	domains                 []string
+	lastUsed                time.Time
+	ttlSeconds              *int
+	readinessTimeoutSeconds *int
 }
 
-func NewRoute(id, svc, port, deploy, ns string, domains []string) (*Route, error) {
+func NewRoute(
+	id, svc, port, deploy, ns string, domains []string, ttlSeconds, readinessTimeoutSeconds *int) (*Route, error) {
 	if id == "" || svc == "" || deploy == "" || ns == "" || utils.IsArrayEmpty(domains) {
 		return nil, errors.New(
 			fmt.Sprintf(
@@ -31,13 +34,15 @@ func NewRoute(id, svc, port, deploy, ns string, domains []string) (*Route, error
 	}
 
 	return &Route{
-		id:         id,
-		service:    svc,
-		port:       useDefaultPortIfEmpty(port),
-		deployment: deploy,
-		namespace:  ns,
-		domains:    domains,
-		lastUsed:   time.Now(),
+		id:                      id,
+		service:                 svc,
+		port:                    useDefaultPortIfEmpty(port),
+		deployment:              deploy,
+		namespace:               ns,
+		domains:                 domains,
+		lastUsed:                time.Now(),
+		ttlSeconds:              ttlSeconds,
+		readinessTimeoutSeconds: readinessTimeoutSeconds,
 	}, nil
 }
 
@@ -93,6 +98,14 @@ func (r *Route) SetNamespace(n string) error {
 	return nil
 }
 
+func (r *Route) SetTTLSeconds(t *int) {
+	r.ttlSeconds = t
+}
+
+func (r *Route) SetReadinessTimeoutSeconds(t *int) {
+	r.readinessTimeoutSeconds = t
+}
+
 func (r *Route) GetDomains() []string {
 	return r.domains
 }
@@ -119,4 +132,12 @@ func (r *Route) GetLastUsed() time.Time {
 
 func (r *Route) GetId() string {
 	return r.id
+}
+
+func (r *Route) GetTTLSeconds() *int {
+	return r.ttlSeconds
+}
+
+func (r *Route) GetReadinessTimeoutSeconds() *int {
+	return r.readinessTimeoutSeconds
 }

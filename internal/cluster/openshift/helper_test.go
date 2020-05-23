@@ -140,7 +140,8 @@ type fakeMemory struct {
 	m map[string]string
 }
 
-func (s *fakeMemory) helper_upsertMemory(id, name, port, deployName, namespace string, domains []string) error {
+func (s *fakeMemory) helper_upsertMemory(
+	id, name, port, deployName, namespace string, domains []string, ttlSeconds, readinessTimeoutSeconds *int) error {
 	if deployName == "" {
 		return errors.New("error upserting m")
 	}

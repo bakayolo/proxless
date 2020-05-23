@@ -8,6 +8,7 @@ import (
 	"kube-proxless/internal/config"
 	"kube-proxless/internal/controller"
 	"kube-proxless/internal/memory"
+	"kube-proxless/internal/model"
 	"testing"
 )
 
@@ -42,9 +43,13 @@ func TestHTTPServer_requestHandler(t *testing.T) {
 		{"mock.io", true, 500},
 	}
 
+	route, err := model.NewRoute(
+		"mock-id", "mock-svc", "", "mock-deploy", "mock-ns", []string{"mock.io"}, nil, nil)
+	assert.NoError(t, err)
+
 	// add route in the memory
-	_ = mem.UpsertMemoryMap(
-		"mock-id", "mock-svc", "", "mock-deploy", "mock-ns", []string{"mock.io"})
+	err = mem.UpsertMemoryMap(route)
+	assert.NoError(t, err)
 
 	for _, tc := range testCases {
 		req := fasthttp.AcquireRequest()

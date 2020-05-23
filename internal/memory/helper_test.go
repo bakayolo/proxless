@@ -1,23 +1,31 @@
 package memory
 
 import (
+	"github.com/stretchr/testify/assert"
+	"kube-proxless/internal/model"
 	"testing"
 )
 
 func upsertMemoryMapHelper(testCases []upsertTestCaseStruct, t *testing.T, s *MemoryMap) {
 	for _, tc := range testCases {
-		errGot := s.UpsertMemoryMap(tc.id, tc.svc, tc.port, tc.deploy, tc.ns, tc.domains)
+		route, err := model.NewRoute(
+			tc.id, tc.svc, tc.port, tc.deploy, tc.ns, tc.domains, nil, nil)
+		assert.NoError(t, err)
 
-		if tc.errWanted != (errGot != nil) {
-			t.Errorf("UpsertMemoryMap(%s) = %v; errWanted = %t", tc.id, errGot, tc.errWanted)
-		}
+		if err == nil {
+			err = s.UpsertMemoryMap(route)
 
-		if errGot == nil {
-			upsertMemoryMapGetRouteHelper(tc.id, tc.id, t, s)
-			deploymentKey := genDeploymentKey(tc.deploy, tc.ns)
-			upsertMemoryMapGetRouteHelper(tc.id, deploymentKey, t, s)
-			for _, d := range tc.domains {
-				upsertMemoryMapGetRouteHelper(tc.id, d, t, s)
+			if tc.errWanted != (err != nil) {
+				t.Errorf("UpsertMemoryMap(%s) = %v; errWanted = %t", tc.id, err, tc.errWanted)
+			}
+
+			if err == nil {
+				upsertMemoryMapGetRouteHelper(tc.id, tc.id, t, s)
+				deploymentKey := genDeploymentKey(tc.deploy, tc.ns)
+				upsertMemoryMapGetRouteHelper(tc.id, deploymentKey, t, s)
+				for _, d := range tc.domains {
+					upsertMemoryMapGetRouteHelper(tc.id, d, t, s)
+				}
 			}
 		}
 	}

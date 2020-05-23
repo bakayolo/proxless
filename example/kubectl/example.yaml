@@ -70,6 +70,8 @@ metadata:
   annotations:
     proxless/domains: "example.io,www.example.io"
     proxless/deployment: "frontend"
+    proxless/ttl-seconds: "120"
+    proxless/readiness-timeout-seconds: "30"
 spec:
   selector:
     app: hello

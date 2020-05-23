@@ -60,7 +60,7 @@ func (s *httpServer) requestHandler(ctx *fasthttp.RequestCtx) {
 
 			// the deployment is scaled down, let's scale it up
 			deployment := route.GetDeployment()
-			if err := s.controller.ScaleUpDeployment(deployment, namespace); err != nil {
+			if err := s.controller.ScaleUpDeployment(deployment, namespace, route.GetReadinessTimeoutSeconds()); err != nil {
 				forwardError(ctx, err)
 			} else { // Second try with the deployment scaled up
 				if err := s.client.do(req, res); err != nil {

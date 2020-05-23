@@ -47,7 +47,8 @@ func (o *openshiftCluster) ScaleDownDeployments(
 
 func (o *openshiftCluster) RunServicesEngine(
 	namespaceScope, proxlessService, proxlessNamespace string,
-	upsertMemory func(id, name, port, deployName, namespace string, domains []string) error,
+	upsertMemory func(
+		id, name, port, deployName, namespace string, domains []string, ttlSeconds, readinessTimeoutSeconds *int) error,
 	deleteRouteFromMemory func(id string) error,
 ) {
 	runServicesInformer(

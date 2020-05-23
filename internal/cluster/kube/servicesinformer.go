@@ -12,7 +12,8 @@ func runServicesInformer(
 	clientSet kubernetes.Interface,
 	namespaceScope, proxlessService, proxlessNamespace string,
 	informerResyncInterval int,
-	upsertMemory func(id, name, port, deployName, namespace string, domains []string) error,
+	upsertMemory func(
+		id, name, port, deployName, namespace string, domains []string, ttlSeconds, readinessTimeoutSeconds *int) error,
 	deleteRouteFromMemory func(id string) error,
 ) {
 	namespaceScoped := false
