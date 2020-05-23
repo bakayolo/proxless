@@ -65,13 +65,28 @@ func addServiceToMemory(
 ) {
 	if clusterutils.IsAnnotationsProxlessCompatible(svc.ObjectMeta) {
 		deployName := svc.Annotations[clusterutils.AnnotationServiceDeployKey]
+		domains :=
+			clusterutils.GenDomains(svc.Annotations[clusterutils.AnnotationServiceDomainKey], svc.Name, svc.Namespace, namespaceScoped)
+		ttlSeconds := clusterutils.ParseStringToIntPointer(svc.Annotations[clusterutils.AnnotationServiceTTLSeconds])
+		readinessTimeoutSeconds := clusterutils.ParseStringToIntPointer(svc.Annotations[clusterutils.AnnotationServiceReadinessTimeoutSeconds])
 
-		_, err := createProxlessService(kubeClientset, svc.Name, svc.Namespace, proxlessSvc, proxlessNamespace)
+		var err error
+		if serviceName, ok := svc.Annotations[clusterutils.AnnotationServiceServiceName]; ok {
+			appNs := svc.Namespace
+			svc, err = kubeClientset.CoreV1().Services(appNs).Get(context.TODO(), serviceName, metav1.GetOptions{})
 
-		if err != nil {
-			logger.Errorf(err, "Error creating proxless service for %s.%s", svc.Name, svc.Namespace)
-			// do not return here - we don't wanna break the proxy forwarding
-			// it will be relabel after the informer resync
+			if err != nil {
+				logger.Errorf(err, "Error finding service %s.%s", serviceName, appNs)
+				return
+			}
+		} else {
+			_, err := createProxlessService(kubeClientset, svc.Name, svc.Namespace, proxlessSvc, proxlessNamespace)
+
+			if err != nil {
+				logger.Errorf(err, "Error creating proxless service for %s.%s", svc.Name, svc.Namespace)
+				// do not return here - we don't wanna break the proxy forwarding
+				// it will be relabel after the informer resync
+			}
 		}
 
 		_, err = labelDeployment(ocClientSet, deployName, svc.Namespace)
@@ -83,11 +98,6 @@ func addServiceToMemory(
 		}
 
 		port := getPortFromServicePorts(svc.Spec.Ports)
-		domains :=
-			clusterutils.GenDomains(svc.Annotations[clusterutils.AnnotationServiceDomainKey], svc.Name, svc.Namespace, namespaceScoped)
-
-		ttlSeconds := clusterutils.ParseStringToIntPointer(svc.Annotations[clusterutils.AnnotationServiceTTLSeconds])
-		readinessTimeoutSeconds := clusterutils.ParseStringToIntPointer(svc.Annotations[clusterutils.AnnotationServiceReadinessTimeoutSeconds])
 
 		err = upsertMemory(string(svc.UID), svc.Name, port, deployName, svc.Namespace, domains, ttlSeconds, readinessTimeoutSeconds)
 
