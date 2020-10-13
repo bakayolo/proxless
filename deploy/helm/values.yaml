@@ -28,6 +28,18 @@ env:
 service:
   type: "ClusterIP"
 
+nodeSelector: {}
+
+tolerations: []
+
+resources:
+  limits: {}
+  #   cpu: 250m
+  #   memory: 256Mi
+  requests: {}
+  #   cpu: 250m
+  #   memory: 256Mi
+
 ingress:
   enabled: false
   annotations:
