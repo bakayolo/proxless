@@ -2,20 +2,20 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: {{ .Release.Name }}-{{ .Chart.Name }}
+  name: {{ template "proxless.fullname" . }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: {{ .Release.Name }}-{{ .Chart.Name }}
+  name: {{ template "proxless.fullname" . }}
 subjects:
   - kind: ServiceAccount
-    name: {{ .Release.Name }}-{{ .Chart.Name }}
+    name: {{ template "proxless.fullname" . }}
     namespace: {{ .Release.Namespace }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: {{ .Release.Name }}-{{ .Chart.Name }}
+  name: {{ template "proxless.fullname" . }}
 rules:
   - apiGroups:
       - ""

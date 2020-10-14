@@ -2,7 +2,7 @@
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
-  name: {{ .Release.Name }}-{{ .Chart.Name }}
+  name: {{ template "proxless.fullname" . }}
   namespace: {{ .Release.Namespace }}
   annotations:
     {{ toYaml .Values.ingress.annotations}}
@@ -18,6 +18,6 @@ spec:
       http:
         paths:
           - backend:
-              serviceName: {{ .Release.Name }}
+              serviceName: {{ template "proxless.fullname" . }}
               servicePort: {{ .Values.port }}
 {{- end }}

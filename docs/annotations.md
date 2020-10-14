@@ -16,7 +16,7 @@ For example, the `hello-world` service will be accessible through `hello-world-p
 However, if you don't want proxless to manage the creation of the proxless service, you can create it by yourself.  
 Therefore, this below annotation will be required on the service pointing to proxless.
 
-/!\ It is important to add this annotation on the service poiting to proxless and not on the service poiting to the deployment.
+/!\ It is important to add this annotation on the service pointing to proxless and not on the service pointing to the deployment.
 
 Name | Description
 --- | ---

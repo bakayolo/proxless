@@ -1,19 +1,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Release.Name }}-{{ .Chart.Name }}
+  name: {{ template "proxless.fullname" . }}
   namespace: {{ .Release.Namespace }}
 spec:
   replicas: {{ .Values.replicas }}
   selector:
     matchLabels:
-      app: {{ .Release.Name }}
+      app: {{ template "proxless.fullname" . }}
   template:
     metadata:
       labels:
-        app: {{ .Release.Name }}
+        app: {{ template "proxless.fullname" . }}
     spec:
-      serviceAccountName: {{ .Release.Name }}-{{ .Chart.Name }}
+      serviceAccountName: {{ template "proxless.fullname" . }}
       {{- if .Values.nodeSelector }}
       nodeSelector: {{- toYaml .Values.nodeSelector | nindent 8 }}
       {{- end }}
@@ -37,7 +37,7 @@ spec:
         - name: NAMESPACE_SCOPED
           value: "{{ .Values.namespaceScoped }}"
         - name: PROXLESS_SERVICE
-          value: "{{ .Release.Name }}"
+          value: {{ template "proxless.fullname" . }}
         - name: PROXLESS_NAMESPACE
           valueFrom:
             fieldRef:
