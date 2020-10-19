@@ -67,7 +67,7 @@ func (r *RedisClient) Subscribe(id string, updateLastUsed func(id string, lastUs
 }
 
 func (r *RedisClient) Unsubscribe(id string) {
-	err := r.m[id].Close()
+	err := r.m[id].Unsubscribe(id)
 
 	if err != nil {
 		logger.Errorf(err, "Could not close the subscription to channel %s", id)
