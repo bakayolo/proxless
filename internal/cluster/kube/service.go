@@ -112,6 +112,17 @@ func removeServiceFromMemory(
 	if clusterutils.IsAnnotationsProxlessCompatible(svc.ObjectMeta) {
 		deployName := svc.Annotations[clusterutils.AnnotationServiceDeployKey]
 
+		if serviceName, ok := svc.Annotations[clusterutils.AnnotationServiceServiceName]; ok {
+			appNs := svc.Namespace
+			var err error
+			svc, err = clientset.CoreV1().Services(appNs).Get(context.TODO(), serviceName, metav1.GetOptions{})
+
+			if err != nil {
+				logger.Errorf(err, "Error finding service %s.%s", serviceName, appNs)
+				return
+			}
+		}
+
 		// we don't process the error here - the deployment might have been deleted with the service
 		_, _ = removeDeploymentLabel(clientset, deployName, svc.Namespace)
 

@@ -48,7 +48,12 @@ func (r *RedisClient) Subscribe(id string, updateLastUsed func(id string, lastUs
 
 		go func() {
 			for {
-				msg := <-r.m[id].Channel()
+				msg, ok := <-r.m[id].Channel()
+
+				if !ok {
+					logger.Debugf("Could not receive message from channel %s - might have been closed", id)
+					return
+				}
 
 				timestampInSec, err := strconv.Atoi(msg.Payload)
 
@@ -67,9 +72,12 @@ func (r *RedisClient) Subscribe(id string, updateLastUsed func(id string, lastUs
 }
 
 func (r *RedisClient) Unsubscribe(id string) {
-	err := r.m[id].Unsubscribe(id)
+	// TODO commenting this because of the `nil` exception due to the redis library
+	// can repro remotely but not locally - To Be Fixed later
 
-	if err != nil {
-		logger.Errorf(err, "Could not close the subscription to channel %s", id)
-	}
+	// err := r.m[id].Close()
+	//
+	// if err != nil {
+	// 	logger.Errorf(err, "Could not close the subscription to channel %s", id)
+	// }
 }
