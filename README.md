@@ -120,6 +120,11 @@ Then run
 $ go run cmd/main.go
 ```
 
+## Blog and Presentation
+
+- [Proxless - Reduce cost in your k8s cluster](https://slides.com/bappr/proxless)
+- [Proxless 101](https://slides.com/bappr/proxless-101)
+
 ## Meta
 
 Benjamin APPREDERISSE - [@benhazard42](https://twitter.com/benhazard42)
