@@ -100,7 +100,7 @@ func TestClusterClient_RunServicesEngine(t *testing.T) {
 	helper_createRandomDeployment(t, clientSet)
 	time.Sleep(time.Duration(servicesInformerResyncInterval) * time.Second)
 	randomDeploy, _ := getDeployment(clientSet, dummyNonProxlessName, dummyNamespaceName)
-	labelsWant := map[string]string{clusterutils.LabelDeploymentProxless: "true"}
+	labelsWant := map[string]string{"app": dummyNonProxlessName, clusterutils.LabelDeploymentProxless: "true"}
 	if !utils.CompareMap(randomDeploy.Labels, labelsWant) {
 		t.Errorf("RunServicesEngine(); deployment must have the label; labels = %s; labelsWant = %s",
 			randomDeploy.Labels, labelsWant)
@@ -111,7 +111,7 @@ func TestClusterClient_RunServicesEngine(t *testing.T) {
 	helper_updateService(t, clientSet, service)
 	time.Sleep(1 * time.Second)
 	randomDeploy, _ = getDeployment(clientSet, dummyNonProxlessName, dummyNamespaceName)
-	if len(randomDeploy.Labels) > 0 {
+	if _, ok := randomDeploy.Labels[clusterutils.LabelDeploymentProxless]; ok {
 		t.Errorf("RunServicesEngine(); labels must be removed; labels = %s", randomDeploy.Labels)
 	}
 

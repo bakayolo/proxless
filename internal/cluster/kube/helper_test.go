@@ -57,6 +57,7 @@ func helper_createRandomDeployment(t *testing.T, clientSet kubernetes.Interface)
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      dummyNonProxlessName,
 			Namespace: dummyNamespaceName,
+			Labels:    map[string]string{"app": dummyNonProxlessName},
 		},
 		Spec: appsv1.DeploymentSpec{
 			Replicas: pointer.Int32Ptr(1),

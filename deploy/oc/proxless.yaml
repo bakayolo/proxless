@@ -106,3 +106,4 @@ rules:
       - get
       - update
       - list
+      - patch

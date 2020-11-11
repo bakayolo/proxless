@@ -51,7 +51,7 @@ func Test_labelDeployment(t *testing.T) {
 	deploy, err = labelDeployment(clientSet, dummyNonProxlessName, dummyNamespaceName)
 	assert.NoError(t, err)
 
-	wantLabels := map[string]string{utils2.LabelDeploymentProxless: "true"}
+	wantLabels := map[string]string{"app": dummyNonProxlessName, utils2.LabelDeploymentProxless: "true"}
 	if !utils.CompareMap(deploy.Labels, wantLabels) {
 		t.Errorf("labelDeployment(); labels = %s, wantLabels = %s", deploy.Labels, wantLabels)
 	}

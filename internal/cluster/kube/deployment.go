@@ -2,25 +2,49 @@ package kube
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8stypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/utils/pointer"
-	utils2 "kube-proxless/internal/cluster/utils"
+	clusterutils "kube-proxless/internal/cluster/utils"
 	"kube-proxless/internal/logger"
-	"kube-proxless/internal/utils"
 	"time"
 )
+
+type patchInt32Value struct {
+	Op    string `json:"op"`
+	Path  string `json:"path"`
+	Value int32  `json:"value"`
+}
+
+type patchStringValue struct {
+	Op    string `json:"op"`
+	Path  string `json:"path"`
+	Value string `json:"value"`
+}
 
 func getDeployment(clientSet kubernetes.Interface, name, namespace string) (*appsv1.Deployment, error) {
 	return clientSet.AppsV1().Deployments(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 }
 
-func updateDeployment(
-	clientSet kubernetes.Interface, deploy *appsv1.Deployment, namespace string) (*appsv1.Deployment, error) {
-	return clientSet.AppsV1().Deployments(namespace).Update(context.TODO(), deploy, metav1.UpdateOptions{})
+func patchDeploymentReplicas(
+	clientSet kubernetes.Interface, name, namespace string, replicas int) (*appsv1.Deployment, error) {
+
+	payloadBytes, err := json.Marshal([]patchInt32Value{{
+		Op:    "replace",
+		Path:  "/spec/replicas",
+		Value: int32(replicas),
+	}})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return clientSet.AppsV1().Deployments(namespace).Patch(
+		context.TODO(), name, k8stypes.JSONPatchType, payloadBytes, metav1.PatchOptions{})
 }
 
 func listDeployments(
@@ -35,24 +59,14 @@ func listDeployments(
 }
 
 func scaleUpDeployment(clientSet kubernetes.Interface, name, namespace string, timeout int) error {
-	deploy, err := getDeployment(clientSet, name, namespace)
+	_, err := patchDeploymentReplicas(clientSet, name, namespace, 1)
+
 	if err != nil {
-		logger.Errorf(err, "Could not get the deployment %s.%s", name, namespace)
+		logger.Errorf(err, "Could not scale up the deployment %s.%s", name, namespace)
 		return err
 	}
 
-	if *deploy.Spec.Replicas == 0 {
-		deploy.Spec.Replicas = pointer.Int32Ptr(1) // TODO make this configurable
-
-		if _, err := updateDeployment(clientSet, deploy, namespace); err != nil {
-			logger.Errorf(err, "Could not scale up the deployment %s.%s", name, namespace)
-			return err
-		} else {
-			return waitForDeploymentAvailable(clientSet, name, namespace, timeout)
-		}
-	} else {
-		return nil
-	}
+	return waitForDeploymentAvailable(clientSet, name, namespace, timeout)
 }
 
 func waitForDeploymentAvailable(clientSet kubernetes.Interface, name, namespace string, timeout int) error {
@@ -81,7 +95,7 @@ func scaleDownDeployments(
 	mustScaleDown func(deployName, namespace string) (bool, time.Duration, error),
 ) []error {
 	labelSelector := metav1.ListOptions{
-		LabelSelector: fmt.Sprintf("%s=%s", utils2.LabelDeploymentProxless, "true"),
+		LabelSelector: fmt.Sprintf("%s=%s", clusterutils.LabelDeploymentProxless, "true"),
 	}
 
 	deploys, err := listDeployments(kubeClient, namespaceScope, labelSelector)
@@ -98,9 +112,8 @@ func scaleDownDeployments(
 			if *deploy.Spec.Replicas > int32(0) {
 				scaleDown, timeIdle, _ := mustScaleDown(deploy.Name, deploy.Namespace)
 				if scaleDown {
-					deploy.Spec.Replicas = pointer.Int32Ptr(0)
+					_, err := patchDeploymentReplicas(kubeClient, deploy.Name, deploy.Namespace, 0)
 
-					_, err := updateDeployment(kubeClient, &deploy, deploy.Namespace)
 					if err != nil {
 						logger.Errorf(err, "Could not scale down deployment %s.%s", deploy.Name, deploy.Namespace)
 						errs = append(errs, err)
@@ -116,32 +129,30 @@ func scaleDownDeployments(
 }
 
 func labelDeployment(clientSet kubernetes.Interface, name, namespace string) (*appsv1.Deployment, error) {
-	labels := map[string]string{utils2.LabelDeploymentProxless: "true"}
-
-	deploy, err := getDeployment(clientSet, name, namespace)
+	payloadBytes, err := json.Marshal([]patchStringValue{{
+		Op:    "add",
+		Path:  fmt.Sprintf("/metadata/labels/%s", clusterutils.LabelDeploymentProxless),
+		Value: "true",
+	}})
 
 	if err != nil {
 		return nil, err
 	}
 
-	if deploy.Labels == nil {
-		deploy.Labels = map[string]string{}
-	}
-	deploy.Labels = utils.MergeMap(deploy.Labels, labels)
-
-	return updateDeployment(clientSet, deploy, namespace)
+	return clientSet.AppsV1().Deployments(namespace).Patch(
+		context.TODO(), name, k8stypes.JSONPatchType, payloadBytes, metav1.PatchOptions{})
 }
 
 func removeDeploymentLabel(clientSet kubernetes.Interface, name, namespace string) (*appsv1.Deployment, error) {
-	deploy, err := getDeployment(clientSet, name, namespace)
+	payloadBytes, err := json.Marshal([]patchStringValue{{
+		Op:   "remove",
+		Path: fmt.Sprintf("/metadata/labels/%s", clusterutils.LabelDeploymentProxless),
+	}})
 
 	if err != nil {
 		return nil, err
 	}
 
-	if deploy.Labels != nil {
-		delete(deploy.Labels, utils2.LabelDeploymentProxless)
-	}
-
-	return updateDeployment(clientSet, deploy, namespace)
+	return clientSet.AppsV1().Deployments(namespace).Patch(
+		context.TODO(), name, k8stypes.JSONPatchType, payloadBytes, metav1.PatchOptions{})
 }
