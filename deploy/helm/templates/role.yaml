@@ -38,6 +38,7 @@ rules:
       - get
       - update
       - list
+      - patch
   {{- else }}
   - apiGroups:
       - "apps"
@@ -47,5 +48,6 @@ rules:
       - get
       - update
       - list
+      - patch
   {{- end }}
 {{- end }}
