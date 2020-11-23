@@ -95,7 +95,8 @@ func addServiceToMemory(
 
 		port := getPortFromServicePorts(svc.Spec.Ports)
 
-		err = upsertMemory(string(svc.UID), svc.Name, port, deployName, svc.Namespace, domains, ttlSeconds, readinessTimeoutSeconds)
+		id := clusterutils.GenRouteId(svc.Name, svc.Namespace)
+		err = upsertMemory(id, svc.Name, port, deployName, svc.Namespace, domains, ttlSeconds, readinessTimeoutSeconds)
 
 		if err == nil {
 			logger.Debugf("Service %s.%s added into memory", svc.Name, svc.Namespace)
@@ -128,7 +129,8 @@ func removeServiceFromMemory(
 
 		_ = deleteProxlessService(clientset, svc.Name, svc.Namespace)
 
-		err := deleteRouteFromMemory(string(svc.UID))
+		id := clusterutils.GenRouteId(svc.Name, svc.Namespace)
+		err := deleteRouteFromMemory(id)
 
 		if err == nil {
 			logger.Debugf("Service %s.%s removed from memory", svc.Name, svc.Namespace)
