@@ -87,7 +87,8 @@ func TestClusterClient_RunServicesEngine(t *testing.T) {
 	// add proxless compatible services into memory
 	service := helper_createProxlessCompatibleService(t, clientSet)
 	time.Sleep(1 * time.Second)
-	if _, ok := memory.m[string(service.UID)]; !ok {
+	id := clusterutils.GenRouteId(service.Name, service.Namespace)
+	if _, ok := memory.m[id]; !ok {
 		t.Errorf("RunServicesEngine(); service not added in memory")
 	}
 	_, err :=

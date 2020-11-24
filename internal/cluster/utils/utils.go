@@ -11,6 +11,10 @@ func GenServiceToAppName(svcName string) string {
 	return fmt.Sprintf("%s-proxless", svcName)
 }
 
+func GenRouteId(svc, ns string) string {
+	return fmt.Sprintf("%s.%s", svc, ns)
+}
+
 func GenDomains(domains, name, namespace string, namespaceScoped bool) []string {
 	svcName := GenServiceToAppName(name)
 	var domainsArray []string
