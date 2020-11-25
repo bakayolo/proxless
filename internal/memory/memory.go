@@ -3,6 +3,7 @@ package memory
 import (
 	"errors"
 	"fmt"
+	"kube-proxless/internal/logger"
 	"kube-proxless/internal/model"
 	"kube-proxless/internal/utils"
 	"sync"
@@ -58,6 +59,11 @@ func (s *MemoryMap) UpsertMemoryMap(route *model.Route) error {
 		existingRoute.SetTTLSeconds(route.GetTTLSeconds())
 		existingRoute.SetReadinessTimeoutSeconds(route.GetReadinessTimeoutSeconds())
 		// existingRoute is a pointer and it's changing dynamically - no need to "persist" the change in the map
+
+		keys := append(
+			[]string{route.GetId(), genDeploymentKey(existingRoute.GetDeployment(), existingRoute.GetNamespace())},
+			route.GetDomains()...)
+		logger.Debugf("Updated route - newKeys: [%s] - keys: [%s] - obj: %v", newKeys, keys, existingRoute)
 	} else {
 		createRoute(s, route)
 	}
@@ -94,6 +100,9 @@ func createRoute(s *MemoryMap, route *model.Route) {
 	for _, d := range route.GetDomains() {
 		s.m[d] = route
 	}
+
+	keys := append([]string{route.GetId(), deploymentKey}, route.GetDomains()...)
+	logger.Debugf("Created route - keys: [%s] - obj: %v", keys, route)
 }
 
 // Remove old domains and deployment from the map if they are not == new ones
