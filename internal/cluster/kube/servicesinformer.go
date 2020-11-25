@@ -35,6 +35,7 @@ func runServicesInformer(
 				return
 			}
 
+			logger.Debugf("Add service handler - %s.%s", svc.Name, svc.Namespace)
 			addServiceToMemory(clientSet, svc, namespaceScoped, proxlessService, proxlessNamespace, upsertMemory)
 
 			return
@@ -52,9 +53,11 @@ func runServicesInformer(
 				logger.Errorf(err, "Cannot process service in UpdateFunc handler")
 			}
 
+			logger.Debugf("Update service handler - %s.%s", newSvc.Name, newSvc.Namespace)
 			updateServiceMemory(
 				clientSet, oldSvc, newSvc, namespaceScoped, proxlessService, proxlessNamespace,
 				upsertMemory, deleteRouteFromMemory)
+
 			return
 		},
 		DeleteFunc: func(obj interface{}) {
@@ -65,6 +68,7 @@ func runServicesInformer(
 				return
 			}
 
+			logger.Debugf("Remove service handler - %s.%s", svc.Name, svc.Namespace)
 			removeServiceFromMemory(clientSet, svc, deleteRouteFromMemory)
 
 			return
