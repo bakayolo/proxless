@@ -5,7 +5,7 @@
 
 **No need a CRD, no need a huge stack, the proxless deployment is the only thing u need.**
 
-**Compatible with Openshift**
+**Openshift friendly**
 
 ## Disclaimer
 
@@ -50,15 +50,6 @@ $ kubectl apply -f deploy/kubectl/proxless.yaml
 This will deploy a proxless scoped to your namespace.  
 Use the helm chart below to make it cluster wide.
 
-#### Openshift
-
-```shell script
-$ oc apply -f deploy/oc/proxless.yaml
-```
-
-This will deploy a proxless scoped to your namespace.  
-Use the helm chart below to make it cluster wide.
-
 #### Helm
 
 You can use our [helm chart](deploy/helm/README.md) for a more configurable approach.  
@@ -82,20 +73,6 @@ Port-forward to your proxless deployment.
 $ kubectl port-forward svc/proxless 8080:80
 Forwarding from 127.0.0.1:8080 -> 80
 Forwarding from [::1]:8080 -> 80
-```
-
-#### Openshift
-
-```shell script
-$ oc apply -f example/oc/example.yaml
-```
-
-Port-forward to your proxless deployment.
-
-```shell script
-$ oc port-forward svc/proxless 8080:8080
-Forwarding from 127.0.0.1:8080 -> 8080
-Forwarding from [::1]:8080 -> 8080
 ```
 
 ### Test it
