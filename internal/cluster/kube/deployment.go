@@ -71,7 +71,8 @@ func scaleUpDeployment(clientSet kubernetes.Interface, name, namespace string, t
 
 func waitForDeploymentAvailable(clientSet kubernetes.Interface, name, namespace string, timeout int) error {
 	now := time.Now()
-	err := wait.PollImmediate(time.Second, time.Duration(timeout)*time.Second, func() (bool, error) {
+	intervalSeconds := 5 * time.Second // TODO make this configurable
+	err := wait.PollImmediate(intervalSeconds, time.Duration(timeout)*time.Second, func() (bool, error) {
 		if deploy, err := getDeployment(clientSet, name, namespace); err != nil {
 			logger.Errorf(err, "Could not get the deployment %s.%s", name, namespace)
 			return true, err

@@ -8,16 +8,18 @@ import (
 )
 
 var (
-	KubeConfigPath                    string
-	Port                              string
-	MaxConsPerHost                    int
-	ProxlessNamespace                 string
-	ProxlessService                   string
-	NamespaceScope                    string
-	ServerlessTTLSeconds              int
-	DeploymentReadinessTimeoutSeconds int
-	RedisURL                          string
-	Cluster                           string
+	KubeConfigPath                        string
+	Port                                  string
+	MaxConsPerHost                        int
+	ProxlessNamespace                     string
+	ProxlessService                       string
+	NamespaceScope                        string
+	ServerlessTTLSeconds                  int
+	DeploymentReadinessTimeoutSeconds     int
+	RedisURL                              string
+	Cluster                               string
+	ScaleDownCheckIntervalSeconds         int
+	ServicesInformerResyncIntervalSeconds int
 )
 
 func LoadEnvVars() {
@@ -39,6 +41,9 @@ func LoadEnvVars() {
 	DeploymentReadinessTimeoutSeconds = getInt("DEPLOYMENT_READINESS_TIMEOUT_SECONDS", 30)
 
 	RedisURL = os.Getenv("REDIS_URL")
+
+	ScaleDownCheckIntervalSeconds = getInt("SCALE_DOWN_CHECK_INTERVAL_SECONDS", 30)
+	ServicesInformerResyncIntervalSeconds = getInt("SERVICES_INFORMER_RESYNC_INTERVAL_SECONDS", 60)
 }
 
 func getString(key, fallback string) string {

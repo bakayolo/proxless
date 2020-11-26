@@ -21,16 +21,15 @@ func main() {
 
 	memoryMap := memory.NewMemoryMap()
 
-	servicesInformerResyncInterval := 60
 	var c cluster.Interface
 
 	if strings.ToUpper(config.Cluster) == "OPENSHIFT" {
 		c = openshift.NewCluster(
 			kube.NewKubeClient(config.KubeConfigPath),
 			openshift.NewOpenshiftClient(config.KubeConfigPath),
-			servicesInformerResyncInterval)
+			config.ServicesInformerResyncIntervalSeconds)
 	} else {
-		c = kube.NewCluster(kube.NewKubeClient(config.KubeConfigPath), servicesInformerResyncInterval)
+		c = kube.NewCluster(kube.NewKubeClient(config.KubeConfigPath), config.ServicesInformerResyncIntervalSeconds)
 	}
 
 	var ps pubsub.Interface
@@ -40,7 +39,7 @@ func main() {
 
 	controller := ctrl.NewController(memoryMap, c, ps)
 
-	go controller.RunDownScaler(30) // TODO make `checkInterval` configurable
+	go controller.RunDownScaler(config.ScaleDownCheckIntervalSeconds)
 
 	go controller.RunServicesEngine()
 
