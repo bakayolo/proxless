@@ -17,7 +17,6 @@ var (
 	ServerlessTTLSeconds                  int
 	DeploymentReadinessTimeoutSeconds     int
 	RedisURL                              string
-	Cluster                               string
 	ScaleDownCheckIntervalSeconds         int
 	ServicesInformerResyncIntervalSeconds int
 )
@@ -34,8 +33,6 @@ func LoadEnvVars() {
 	if getBool("NAMESPACE_SCOPED", true) {
 		NamespaceScope = ProxlessNamespace
 	}
-
-	Cluster = getString("CLUSTER", "KUBERNETES")
 
 	ServerlessTTLSeconds = getInt("SERVERLESS_TTL_SECONDS", 30)
 	DeploymentReadinessTimeoutSeconds = getInt("DEPLOYMENT_READINESS_TIMEOUT_SECONDS", 30)

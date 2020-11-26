@@ -29,17 +29,6 @@ rules:
       - list
       - create
       - delete
-  {{- if eq .Values.cluster "OPENSHIFT" }}
-  - apiGroups:
-      - "apps.openshift.io"
-    resources:
-      - deploymentconfigs
-    verbs:
-      - get
-      - update
-      - list
-      - patch
-  {{- else }}
   - apiGroups:
       - "apps"
     resources:
@@ -49,5 +38,4 @@ rules:
       - update
       - list
       - patch
-  {{- end }}
 {{- end }}

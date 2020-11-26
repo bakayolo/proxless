@@ -16,9 +16,6 @@ namespaceScoped: false
 
 replicas: 2
 
-## one of `KUBERNETES` or `OPENSHIFT`
-cluster: KUBERNETES
-
 env:
   MAX_CONS_PER_HOST: 10000
   SERVERLESS_TTL_SECONDS: 30 # Time in seconds proxless waits before scaling down the app

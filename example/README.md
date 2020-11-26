@@ -47,12 +47,6 @@ If proxless is scoped to a namespace, both service will also be accessible inter
 $ kubectl apply -f kubectl/example.yaml
 ```
 
-### Openshift
-
-```shell script
-$ oc apply -f oc/example.yaml
-```
-
 ## Port-Forward
 
 Port-forward to your proxless deployment.
@@ -63,14 +57,6 @@ Port-forward to your proxless deployment.
 $ kubectl port-forward svc/proxless 8080:80
 Forwarding from 127.0.0.1:8080 -> 80
 Forwarding from [::1]:8080 -> 80
-```
-
-### Openshift
-
-```shell script
-$ oc port-forward svc/proxless 8080:8080
-Forwarding from 127.0.0.1:8080 -> 8080
-Forwarding from [::1]:8080 -> 8080
 ```
 
 ## Call it
