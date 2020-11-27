@@ -73,16 +73,15 @@ func TestController_ScaleUpDeployment(t *testing.T) {
 
 	// check the implemention of the fake client to understand the test
 
-	assert.NoError(t, c.ScaleUpDeployment("mock-deploy", "mock-ns", nil))
+	assert.NoError(t, c.ScaleUpDeployment("mock-deploy", "mock-ns", 0))
 
-	assert.Error(t, c.ScaleUpDeployment("deploy", "ns", nil))
+	assert.Error(t, c.ScaleUpDeployment("deploy", "ns", 0))
 }
 
 func TestController_scaleDownDeployments(t *testing.T) {
 	c := NewController(memory.NewMemoryMap(), fake.NewCluster(), nil)
 
-	// error - memory is empty / route not found
-	helper_assertAtLeastOneError(t, scaleDownDeployments(c))
+	helper_assertNoError(t, scaleDownDeployments(c))
 
 	route, err := model.NewRoute(
 		"mock-id", "mock-svc", "", "mock-deploy", "mock-ns",

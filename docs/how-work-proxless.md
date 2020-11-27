@@ -25,6 +25,7 @@ It will contain
 - the deployment name proxless will scale up and down
 - the domain names / urls proxless proxless will proxy
 - a timestamp of the last time the service has been requested
+- a boolean saying if the service is running or not
 
 The logic of the in-memory map is available in [internal/memory/memory.go](../internal/memory/memory.go).
 
@@ -62,12 +63,10 @@ Upon creating/modifying a service, the services engine will
         - example: `proxless/domains=example.io,www.example.io` 
 - if the service is compatible
     - it will add all the information into the memory (see the [memory section](#memory))
-    - it will add the label `proxless=true` to the deployment (for the [downscaler](#the-downscaler))
-        - if the deployment does not exist, it will still add the information into memory so that the forwarding still works
-        - it resyncs all the services every 30 seconds so the deployment can be picked up later
+    - it resyncs all the services every 30 seconds so the deployment can be picked up later
     - it will create new service `[SERVICE]-proxless` that you can use to access your service internally through proxless.
 
-Upon deleting a service, the service engine will delete all its route information from the memory, remove the proxless label from its deployment and remove the proxless service.
+Upon deleting a service, the service engine will delete all its route information from the memory and remove the proxless service.
 
 The logic of the services engine is available in [internal/cluster/kube/servicesinformer.go](../internal/cluster/kube/servicesinformer.go).
 
@@ -78,17 +77,15 @@ It is responsible for downscaling the deployment when the service has not been c
 
 Every `N` seconds (configurable), the downscaler will
 
-- retrieve all the deployments with the label `proxless=true`
-- loop through each deployment that are running
-    - retrieve its route information from the memory
-    - check if its `lastUsed` timestamp is > `timeout` (configurable)
-        - if yes, it will scale down the deployment
+- retrieve all the deployments that are running from the memory map and loop through them
+  - check if its `lastUsed` timestamp is > `timeout` (configurable)
+      - if yes, it will scale down the deployment
 
 The logic of the downscaler is available in the `RunDownScaler` func from [internal/controller/controller.go](../internal/controller/controller.go).
 
 ### PubSub (optional)
 
-The pubsub system is used to synchronize the `lastUsed` time for each request on each proxless replicas.
+The pubsub system is used to synchronize the `lastUsed` time for each request and the `isRunning` field on each proxless replicas.
 It is optional and currently use Redis.
 
 - Upon receiving a new proxless compatible service (the services engine), every replica subscribe to a channel corresponding to the service id in the pubsub system.  
@@ -96,5 +93,7 @@ It is optional and currently use Redis.
 - Upon receiving a message from the pub/sub system, the replica will update the memory store.
 
 This guarantee an eventual consistency by making sure that every replica connected to the pubsub system will always end up with the latest `lastUsed` time for each request.
+
+The pubsub is also used for syncing the `isRunning` field.
 
 The logic of the pubsub is available in [internal/pubsub/redis/redis.go](../internal/pubsub/redis/redis.go).

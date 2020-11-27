@@ -81,16 +81,7 @@ func addServiceToMemory(
 			if err != nil {
 				logger.Errorf(err, "Error creating proxless service for %s.%s", svc.Name, svc.Namespace)
 				// do not return here - we don't wanna break the proxy forwarding
-				// it will be relabel after the informer resync
 			}
-		}
-
-		_, err = labelDeployment(clientset, deployName, svc.Namespace)
-
-		if err != nil {
-			logger.Errorf(err, "Error labelling deployment %s.%s", deployName, svc.Namespace)
-			// do not return here - we don't wanna break the proxy forwarding
-			// it will be relabel after the informer resync
 		}
 
 		port := getPortFromServicePorts(svc.Spec.Ports)
@@ -111,8 +102,6 @@ func removeServiceFromMemory(
 	deleteRouteFromMemory func(id string) error,
 ) {
 	if clusterutils.IsAnnotationsProxlessCompatible(svc.ObjectMeta) {
-		deployName := svc.Annotations[clusterutils.AnnotationServiceDeployKey]
-
 		if serviceName, ok := svc.Annotations[clusterutils.AnnotationServiceServiceName]; ok {
 			appNs := svc.Namespace
 			var err error
@@ -123,9 +112,6 @@ func removeServiceFromMemory(
 				return
 			}
 		}
-
-		// we don't process the error here - the deployment might have been deleted with the service
-		_, _ = removeDeploymentLabel(clientset, deployName, svc.Namespace)
 
 		_ = deleteProxlessService(clientset, svc.Name, svc.Namespace)
 
@@ -149,16 +135,6 @@ func updateServiceMemory(
 ) {
 	if clusterutils.IsAnnotationsProxlessCompatible(oldSvc.ObjectMeta) &&
 		clusterutils.IsAnnotationsProxlessCompatible(newSvc.ObjectMeta) { // updating service
-		oldDeployName := oldSvc.Annotations[clusterutils.AnnotationServiceDeployKey]
-
-		if oldDeployName != newSvc.Annotations[clusterutils.AnnotationServiceDeployKey] {
-			_, err := removeDeploymentLabel(clientset, oldDeployName, oldSvc.Namespace)
-			if err != nil {
-				logger.Errorf(err, "error remove proxless label from deployment %s.%s",
-					oldDeployName, oldSvc.Namespace)
-			}
-		}
-
 		// the `addServiceToMemory` is idempotent so we can reuse it in the update
 		addServiceToMemory(clientset, newSvc, namespaceScoped, proxlessService, proxlessNamespace, upsertMemory)
 	} else if !clusterutils.IsAnnotationsProxlessCompatible(oldSvc.ObjectMeta) &&

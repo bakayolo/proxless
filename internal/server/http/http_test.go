@@ -46,6 +46,7 @@ func TestHTTPServer_requestHandler(t *testing.T) {
 	route, err := model.NewRoute(
 		"mock-id", "mock-svc", "", "mock-deploy", "mock-ns", []string{"mock.io"}, nil, nil)
 	assert.NoError(t, err)
+	route.SetIsRunning(false)
 
 	// add route in the memory
 	err = mem.UpsertMemoryMap(route)

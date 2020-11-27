@@ -3,6 +3,7 @@ package memory
 import (
 	"errors"
 	"fmt"
+	"kube-proxless/internal/config"
 	"kube-proxless/internal/logger"
 	"kube-proxless/internal/model"
 	"kube-proxless/internal/utils"
@@ -15,7 +16,9 @@ type Interface interface {
 	GetRouteByDomain(domain string) (*model.Route, error)
 	GetRouteByDeployment(deploy, namespace string) (*model.Route, error)
 	UpdateLastUsed(id string, t time.Time) error
+	UpdateIsRunning(id string, isRunning bool) error
 	DeleteRoute(id string) error
+	GetRoutesToScaleDown() map[string]model.Route
 }
 
 type MemoryMap struct {
@@ -211,6 +214,19 @@ func (s *MemoryMap) UpdateLastUsed(id string, t time.Time) error {
 	return errors.New(fmt.Sprintf("Route %s not found in map", id))
 }
 
+func (s *MemoryMap) UpdateIsRunning(id string, isRunning bool) error {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	if route, ok := s.m[id]; ok {
+		// No need to persist in the map, it's a pointer
+		route.SetIsRunning(isRunning)
+		return nil
+	}
+
+	return errors.New(fmt.Sprintf("Route %s not found in map", id))
+}
+
 func (s *MemoryMap) DeleteRoute(id string) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
@@ -226,4 +242,29 @@ func (s *MemoryMap) DeleteRoute(id string) error {
 	}
 
 	return errors.New(fmt.Sprintf("Route %s not found in map", id))
+}
+
+func (s *MemoryMap) GetRoutesToScaleDown() map[string]model.Route {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	deploymentToScaleDown := map[string]model.Route{}
+
+	for _, route := range s.m {
+		if _, ok := deploymentToScaleDown[route.GetId()]; !ok {
+			timeIdle := time.Now().Sub(route.GetLastUsed())
+
+			ttl := config.ServerlessTTLSeconds
+			if route.GetTTLSeconds() != nil {
+				ttl = *route.GetTTLSeconds()
+			}
+
+			// https://stackoverflow.com/a/41503910/5683655
+			if int64(timeIdle/time.Second) >= int64(ttl) {
+				deploymentToScaleDown[route.GetId()] = *route
+			}
+		}
+	}
+
+	return deploymentToScaleDown
 }

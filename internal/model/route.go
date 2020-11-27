@@ -21,6 +21,7 @@ type Route struct {
 	lastUsed                time.Time
 	ttlSeconds              *int
 	readinessTimeoutSeconds *int
+	isRunning               bool
 }
 
 func NewRoute(
@@ -43,6 +44,7 @@ func NewRoute(
 		lastUsed:                time.Now(),
 		ttlSeconds:              ttlSeconds,
 		readinessTimeoutSeconds: readinessTimeoutSeconds,
+		isRunning:               true, // TODO by default we consider the service to be up and running - see how to make it configurable
 	}, nil
 }
 
@@ -106,6 +108,10 @@ func (r *Route) SetReadinessTimeoutSeconds(t *int) {
 	r.readinessTimeoutSeconds = t
 }
 
+func (r *Route) SetIsRunning(isRunning bool) {
+	r.isRunning = isRunning
+}
+
 func (r *Route) GetDomains() []string {
 	return r.domains
 }
@@ -140,4 +146,8 @@ func (r *Route) GetTTLSeconds() *int {
 
 func (r *Route) GetReadinessTimeoutSeconds() *int {
 	return r.readinessTimeoutSeconds
+}
+
+func (r *Route) GetIsRunning() bool {
+	return r.isRunning
 }
