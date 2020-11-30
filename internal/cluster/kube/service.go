@@ -57,7 +57,7 @@ func addServiceToMemory(
 	clientset kubernetes.Interface, svc *corev1.Service, namespaceScoped bool,
 	proxlessSvc, proxlessNamespace string,
 	upsertMemory func(
-		id, name, port, deployName, namespace string, domains []string, ttlSeconds, readinessTimeoutSeconds *int) error,
+		id, name, port, deployName, namespace string, domains []string, isRunning bool, ttlSeconds, readinessTimeoutSeconds *int) error,
 ) {
 	if clusterutils.IsAnnotationsProxlessCompatible(svc.ObjectMeta) {
 		deployName := svc.Annotations[clusterutils.AnnotationServiceDeployKey]
@@ -86,8 +86,10 @@ func addServiceToMemory(
 
 		port := getPortFromServicePorts(svc.Spec.Ports)
 
+		isRunning := isDeploymentRunning(clientset, deployName, svc.Namespace)
+
 		id := clusterutils.GenRouteId(svc.Name, svc.Namespace)
-		err = upsertMemory(id, svc.Name, port, deployName, svc.Namespace, domains, ttlSeconds, readinessTimeoutSeconds)
+		err = upsertMemory(id, svc.Name, port, deployName, svc.Namespace, domains, isRunning, ttlSeconds, readinessTimeoutSeconds)
 
 		if err == nil {
 			logger.Debugf("Service %s.%s added into memory", svc.Name, svc.Namespace)
@@ -130,7 +132,7 @@ func updateServiceMemory(
 	clientset kubernetes.Interface, oldSvc, newSvc *corev1.Service, namespaceScoped bool,
 	proxlessService, proxlessNamespace string,
 	upsertMemory func(
-		id, name, port, deployName, namespace string, domains []string, ttlSeconds, readinessTimeoutSeconds *int) error,
+		id, name, port, deployName, namespace string, domains []string, isRunning bool, ttlSeconds, readinessTimeoutSeconds *int) error,
 	deleteRouteFromMemory func(id string) error,
 ) {
 	if clusterutils.IsAnnotationsProxlessCompatible(oldSvc.ObjectMeta) &&

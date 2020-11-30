@@ -20,7 +20,7 @@ func TestController_GetRouteByDomainFromMemory(t *testing.T) {
 
 	route, err := model.NewRoute(
 		"mock-id", "mock-svc", "", "mock-deploy", "mock-ns",
-		[]string{"mock.io"},
+		[]string{"mock.io"}, true,
 		nil, nil)
 	assert.NoError(t, err)
 
@@ -44,7 +44,7 @@ func TestController_UpdateLastUseMemory(t *testing.T) {
 
 	route, err := model.NewRoute(
 		"mock-id", "mock-svc", "", "mock-deploy", "mock-ns",
-		[]string{"mock.io"},
+		[]string{"mock.io"}, true,
 		nil, nil)
 	assert.NoError(t, err)
 
@@ -85,7 +85,7 @@ func TestController_scaleDownDeployments(t *testing.T) {
 
 	route, err := model.NewRoute(
 		"mock-id", "mock-svc", "", "mock-deploy", "mock-ns",
-		[]string{"mock.io"},
+		[]string{"mock.io"}, true,
 		nil, nil)
 	assert.NoError(t, err)
 
@@ -108,7 +108,7 @@ func TestController_RunDownScaler(t *testing.T) {
 
 	route, err := model.NewRoute(
 		"mock-id", "mock-svc", "", "mock-deploy", "mock-ns",
-		[]string{"mock.io"},
+		[]string{"mock.io"}, true,
 		nil, nil)
 	assert.NoError(t, err)
 

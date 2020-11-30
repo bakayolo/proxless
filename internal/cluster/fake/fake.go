@@ -38,12 +38,12 @@ func (*fakeCluster) ScaleDownDeployment(deploymentName, namespace string) error 
 func (*fakeCluster) RunServicesEngine(
 	namespaceScope, proxlessService, proxlessNamespace string,
 	upsertMemory func(
-		id, name, port, deployName, namespace string, domains []string, ttlSeconds, readinessTimeoutSeconds *int) error,
+		id, name, port, deployName, namespace string, domains []string, isRunning bool, ttlSeconds, readinessTimeoutSeconds *int) error,
 	deleteRouteFromMemory func(id string) error,
 ) {
 	if namespaceScope == "upsert" { // TODO this is too hacky, see how others are doing
 		err := upsertMemory(
-			serviceId, serviceName, "", deployName, namespaceName, domains, nil, nil)
+			serviceId, serviceName, "", deployName, namespaceName, domains, true, nil, nil)
 
 		if err != nil {
 			logger.Errorf(err, "Error upserting in fake package")

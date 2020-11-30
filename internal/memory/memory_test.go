@@ -62,7 +62,7 @@ func TestMemoryMap_CheckDeployAndDomainsOwnership(t *testing.T) {
 	s := NewMemoryMap()
 
 	route, err := model.NewRoute(
-		"0", "svc0", "", "deploy0", "ns0", []string{"example.0.0"}, nil, nil)
+		"0", "svc0", "", "deploy0", "ns0", []string{"example.0.0"}, true, nil, nil)
 	assert.NoError(t, err)
 
 	err = s.UpsertMemoryMap(route)
@@ -94,7 +94,7 @@ func TestMemoryMap_cleanOldDeploymentFromMap(t *testing.T) {
 	s := NewMemoryMap()
 
 	r0, err :=
-		model.NewRoute("0", "svc0", "", "deploy0", "ns0", []string{"example.0.0"}, nil, nil)
+		model.NewRoute("0", "svc0", "", "deploy0", "ns0", []string{"example.0.0"}, true, nil, nil)
 	assert.NoError(t, err)
 
 	createRoute(s, r0)
@@ -125,7 +125,7 @@ func TestMemoryMap_UpdateLastUse(t *testing.T) {
 	s := NewMemoryMap()
 
 	r0, err :=
-		model.NewRoute("0", "svc0", "", "deploy0", "ns0", []string{"example.0.0"}, nil, nil)
+		model.NewRoute("0", "svc0", "", "deploy0", "ns0", []string{"example.0.0"}, true, nil, nil)
 	assert.NoError(t, err)
 
 	createRoute(s, r0)
@@ -156,7 +156,7 @@ func TestMemoryMap_UpdateLastUse(t *testing.T) {
 func TestMemoryMap_DeleteRoute(t *testing.T) {
 	s := NewMemoryMap()
 
-	r0, _ := model.NewRoute("0", "svc0", "", "deploy0", "ns0", []string{"example.0.0"}, nil, nil)
+	r0, _ := model.NewRoute("0", "svc0", "", "deploy0", "ns0", []string{"example.0.0"}, true, nil, nil)
 	createRoute(s, r0)
 
 	testCases := []struct {

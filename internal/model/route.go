@@ -25,7 +25,7 @@ type Route struct {
 }
 
 func NewRoute(
-	id, svc, port, deploy, ns string, domains []string, ttlSeconds, readinessTimeoutSeconds *int) (*Route, error) {
+	id, svc, port, deploy, ns string, domains []string, isRunning bool, ttlSeconds, readinessTimeoutSeconds *int) (*Route, error) {
 	if id == "" || svc == "" || deploy == "" || ns == "" || utils.IsArrayEmpty(domains) {
 		return nil, errors.New(
 			fmt.Sprintf(
@@ -44,7 +44,7 @@ func NewRoute(
 		lastUsed:                time.Now(),
 		ttlSeconds:              ttlSeconds,
 		readinessTimeoutSeconds: readinessTimeoutSeconds,
-		isRunning:               true, // TODO by default we consider the service to be up and running - see how to make it configurable
+		isRunning:               isRunning,
 	}, nil
 }
 

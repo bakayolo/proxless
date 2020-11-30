@@ -104,7 +104,7 @@ func TestNewRoute(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		got, errGot := NewRoute(tc.id, tc.svc, tc.port, tc.deploy, tc.ns, tc.domains, nil, nil)
+		got, errGot := NewRoute(tc.id, tc.svc, tc.port, tc.deploy, tc.ns, tc.domains, true, nil, nil)
 
 		if tc.errWanted != (errGot != nil) {
 			t.Errorf("CreateRoute(tc %s) = %v, errWanted = %t", tc.id, errGot, tc.errWanted)

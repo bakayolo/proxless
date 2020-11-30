@@ -117,7 +117,7 @@ func (c *controller) RunServicesEngine() {
 		config.ProxlessNamespace,
 		func(
 			id, name, port, deployName, namespace string,
-			domains []string,
+			domains []string, isRunning bool,
 			ttlSeconds, readinessTimeoutSeconds *int) error {
 			if c.pubsub != nil {
 				c.pubsub.SubscribeLastUsed(id, c.memory.UpdateLastUsed)
@@ -125,7 +125,7 @@ func (c *controller) RunServicesEngine() {
 			}
 
 			route, err :=
-				model.NewRoute(id, name, port, deployName, namespace, domains, ttlSeconds, readinessTimeoutSeconds)
+				model.NewRoute(id, name, port, deployName, namespace, domains, isRunning, ttlSeconds, readinessTimeoutSeconds)
 
 			if err != nil {
 				return err

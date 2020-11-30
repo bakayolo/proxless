@@ -83,3 +83,19 @@ func scaleDownDeployment(kubeClient kubernetes.Interface, deploymentName, namesp
 
 	return nil
 }
+
+// return true if deployment `replicas` > 0
+func isDeploymentRunning(kubeClient kubernetes.Interface, deployment, namespace string) bool {
+	deploy, err := getDeployment(kubeClient, deployment, namespace)
+
+	if err != nil {
+		logger.Errorf(err, "Error retrieving deployment %s.%s", deployment, namespace)
+		return false
+	}
+
+	if *deploy.Spec.Replicas > 0 {
+		return true
+	}
+
+	return false
+}

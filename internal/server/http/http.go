@@ -60,20 +60,21 @@ func (s *httpServer) requestHandler(ctx *fasthttp.RequestCtx) {
 		err := s.client.do(req, res)
 
 		if err != nil { // First try, the deployment might be scaled down
-			logger.Debugf("Error forwarding the request %s - Try scaling up the deployment", ctx.Host())
-
 			readinessTimeoutSeconds := config.DeploymentReadinessTimeoutSeconds
 			if route.GetReadinessTimeoutSeconds() != nil {
 				readinessTimeoutSeconds = *route.GetReadinessTimeoutSeconds()
 			}
 
 			if route.GetIsRunning() {
+				logger.Debugf("Error forwarding the request %s - deployment is already running, we just wait", ctx.Host())
+
 				err := waitForResponse(s, req, res, readinessTimeoutSeconds)
 
 				if err != nil {
 					forwardError(ctx, err)
 				}
 			} else {
+				logger.Debugf("Error forwarding the request %s - Try scaling up the deployment", ctx.Host())
 				// we update the isRunning cuz to make sure we don't have multiple tentatives of waking up the deployment
 				// at the same time - otherwise that would overload the kubernetes api
 				_ = s.controller.UpdateIsRunningInMemory(route.GetId())

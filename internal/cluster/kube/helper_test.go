@@ -127,7 +127,7 @@ type fakeMemory struct {
 }
 
 func (s *fakeMemory) helper_upsertMemory(
-	id, name, port, deployName, namespace string, domains []string, ttlSeconds, readinessTimeoutSeconds *int) error {
+	id, name, port, deployName, namespace string, domains []string, isRunning bool, ttlSeconds, readinessTimeoutSeconds *int) error {
 	if deployName == "" {
 		return errors.New("error upserting m")
 	}
