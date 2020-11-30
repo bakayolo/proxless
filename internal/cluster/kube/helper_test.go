@@ -12,7 +12,6 @@ import (
 	"k8s.io/utils/pointer"
 	"kube-proxless/internal/cluster/utils"
 	"testing"
-	"time"
 )
 
 const (
@@ -37,7 +36,6 @@ func helper_createProxlessCompatibleDeployment(t *testing.T, clientSet kubernete
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      dummyProxlessName,
 			Namespace: dummyNamespaceName,
-			Labels:    map[string]string{utils.LabelDeploymentProxless: "true"},
 		},
 		Spec: appsv1.DeploymentSpec{
 			Replicas: pointer.Int32Ptr(0),
@@ -124,22 +122,12 @@ func helper_updateService(t *testing.T, clientSet kubernetes.Interface, svc *cor
 	return svcUpdated
 }
 
-func helper_assertNoError(t *testing.T, errs []error) {
-	if errs != nil && len(errs) > 0 {
-		t.Errorf("Array must not have any error")
-	}
-}
-
-func helper_shouldScaleDown(_, _ string) (bool, time.Duration, error) {
-	return true, time.Now().Sub(time.Now()), nil
-}
-
 type fakeMemory struct {
 	m map[string]string
 }
 
 func (s *fakeMemory) helper_upsertMemory(
-	id, name, port, deployName, namespace string, domains []string, ttlSeconds, readinessTimeoutSeconds *int) error {
+	id, name, port, deployName, namespace string, domains []string, isRunning bool, ttlSeconds, readinessTimeoutSeconds *int) error {
 	if deployName == "" {
 		return errors.New("error upserting m")
 	}

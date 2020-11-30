@@ -13,7 +13,7 @@ func runServicesInformer(
 	namespaceScope, proxlessService, proxlessNamespace string,
 	informerResyncInterval int,
 	upsertMemory func(
-		id, name, port, deployName, namespace string, domains []string, ttlSeconds, readinessTimeoutSeconds *int) error,
+		id, name, port, deployName, namespace string, domains []string, isRunning bool, ttlSeconds, readinessTimeoutSeconds *int) error,
 	deleteRouteFromMemory func(id string) error,
 ) {
 	namespaceScoped := false

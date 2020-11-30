@@ -6,7 +6,6 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"kube-proxless/internal/cluster"
 	"kube-proxless/internal/logger"
-	"time"
 )
 
 type kubeCluster struct {
@@ -35,15 +34,14 @@ func (k *kubeCluster) ScaleUpDeployment(name, namespace string, timeout int) err
 	return scaleUpDeployment(k.clientSet, name, namespace, timeout)
 }
 
-func (k *kubeCluster) ScaleDownDeployments(
-	namespaceScope string, mustScaleDown func(deployName, namespace string) (bool, time.Duration, error)) []error {
-	return scaleDownDeployments(k.clientSet, namespaceScope, mustScaleDown)
+func (k *kubeCluster) ScaleDownDeployment(deploymentName, namespace string) error {
+	return scaleDownDeployment(k.clientSet, deploymentName, namespace)
 }
 
 func (k *kubeCluster) RunServicesEngine(
 	namespaceScope, proxlessService, proxlessNamespace string,
 	upsertMemory func(
-		id, name, port, deployName, namespace string, domains []string, ttlSeconds, readinessTimeoutSeconds *int) error,
+		id, name, port, deployName, namespace string, domains []string, isRunning bool, ttlSeconds, readinessTimeoutSeconds *int) error,
 	deleteRouteFromMemory func(id string) error,
 ) {
 	runServicesInformer(

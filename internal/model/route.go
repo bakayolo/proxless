@@ -21,10 +21,11 @@ type Route struct {
 	lastUsed                time.Time
 	ttlSeconds              *int
 	readinessTimeoutSeconds *int
+	isRunning               bool
 }
 
 func NewRoute(
-	id, svc, port, deploy, ns string, domains []string, ttlSeconds, readinessTimeoutSeconds *int) (*Route, error) {
+	id, svc, port, deploy, ns string, domains []string, isRunning bool, ttlSeconds, readinessTimeoutSeconds *int) (*Route, error) {
 	if id == "" || svc == "" || deploy == "" || ns == "" || utils.IsArrayEmpty(domains) {
 		return nil, errors.New(
 			fmt.Sprintf(
@@ -43,6 +44,7 @@ func NewRoute(
 		lastUsed:                time.Now(),
 		ttlSeconds:              ttlSeconds,
 		readinessTimeoutSeconds: readinessTimeoutSeconds,
+		isRunning:               isRunning,
 	}, nil
 }
 
@@ -106,6 +108,10 @@ func (r *Route) SetReadinessTimeoutSeconds(t *int) {
 	r.readinessTimeoutSeconds = t
 }
 
+func (r *Route) SetIsRunning(isRunning bool) {
+	r.isRunning = isRunning
+}
+
 func (r *Route) GetDomains() []string {
 	return r.domains
 }
@@ -140,4 +146,8 @@ func (r *Route) GetTTLSeconds() *int {
 
 func (r *Route) GetReadinessTimeoutSeconds() *int {
 	return r.readinessTimeoutSeconds
+}
+
+func (r *Route) GetIsRunning() bool {
+	return r.isRunning
 }

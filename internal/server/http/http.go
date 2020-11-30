@@ -3,10 +3,12 @@ package http
 import (
 	"fmt"
 	"github.com/valyala/fasthttp"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"kube-proxless/internal/config"
 	"kube-proxless/internal/controller"
 	"kube-proxless/internal/logger"
 	"kube-proxless/internal/server/utils"
+	"time"
 )
 
 type httpServer struct {
@@ -55,18 +57,40 @@ func (s *httpServer) requestHandler(ctx *fasthttp.RequestCtx) {
 		// update before because it's gonna take some time to scale up the deployment
 		_ = s.controller.UpdateLastUsedInMemory(route.GetId())
 
-		if err := s.client.do(req, res); err != nil { // First try
-			logger.Debugf("Error forwarding the request %s - Try scaling up the deployment", ctx.Host())
+		err := s.client.do(req, res)
 
-			// the deployment is scaled down, let's scale it up
-			deployment := route.GetDeployment()
-			if err := s.controller.ScaleUpDeployment(deployment, namespace, route.GetReadinessTimeoutSeconds()); err != nil {
-				forwardError(ctx, err)
-			} else { // Second try with the deployment scaled up
-				if err := s.client.do(req, res); err != nil {
+		if err != nil { // First try, the deployment might be scaled down
+			readinessTimeoutSeconds := config.DeploymentReadinessTimeoutSeconds
+			if route.GetReadinessTimeoutSeconds() != nil {
+				readinessTimeoutSeconds = *route.GetReadinessTimeoutSeconds()
+			}
+
+			if route.GetIsRunning() {
+				logger.Debugf("Error forwarding the request %s - deployment is already running, we just wait", ctx.Host())
+
+				err := waitForResponse(s, req, res, readinessTimeoutSeconds)
+
+				if err != nil {
 					forwardError(ctx, err)
-				} else {
-					forwardRequest(ctx, res)
+				}
+			} else {
+				logger.Debugf("Error forwarding the request %s - Try scaling up the deployment", ctx.Host())
+				// we update the isRunning cuz to make sure we don't have multiple tentatives of waking up the deployment
+				// at the same time - otherwise that would overload the kubernetes api
+				_ = s.controller.UpdateIsRunningInMemory(route.GetId())
+
+				err := s.controller.ScaleUpDeployment(route.GetDeployment(), namespace, readinessTimeoutSeconds)
+
+				if err != nil {
+					forwardError(ctx, err)
+				} else { // Second try with the deployment scaled up
+					err := s.client.do(req, res)
+
+					if err != nil {
+						forwardError(ctx, err)
+					} else {
+						forwardRequest(ctx, res)
+					}
 				}
 			}
 		} else {
@@ -77,6 +101,22 @@ func (s *httpServer) requestHandler(ctx *fasthttp.RequestCtx) {
 		// TODO see this, I don't like updating it twice
 		_ = s.controller.UpdateLastUsedInMemory(route.GetId())
 	}
+}
+
+// we call the backend regularly to see if the app is responding or not
+// TODO implement some sort of queuing system to make sure the request are being sent in order
+func waitForResponse(s *httpServer, req *fasthttp.Request, res *fasthttp.Response, readinessTimeoutSeconds int) error {
+	err := wait.PollImmediate(1*time.Second, time.Duration(readinessTimeoutSeconds)*time.Second, func() (bool, error) {
+		err := s.client.do(req, res)
+
+		if err == nil {
+			return true, nil
+		} else {
+			return false, nil
+		}
+	})
+
+	return err
 }
 
 func forward404Error(ctx *fasthttp.RequestCtx, err error, host string) {

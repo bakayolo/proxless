@@ -13,7 +13,8 @@ import (
 type Interface interface {
 	GetRouteByDomainFromMemory(domain string) (*model.Route, error)
 	UpdateLastUsedInMemory(id string) error
-	ScaleUpDeployment(name, namespace string, readinessTimeoutSeconds *int) error
+	UpdateIsRunningInMemory(id string) error
+	ScaleUpDeployment(name, namespace string, readinessTimeoutSeconds int) error
 	RunDownScaler(checkInterval int)
 	RunServicesEngine()
 }
@@ -39,19 +40,22 @@ func (c *controller) GetRouteByDomainFromMemory(domain string) (*model.Route, er
 func (c *controller) UpdateLastUsedInMemory(id string) error {
 	now := time.Now()
 	if c.pubsub != nil {
-		c.pubsub.Publish(id, now)
+		c.pubsub.PublishLastUsed(id, now)
 	}
 
 	return c.memory.UpdateLastUsed(id, now)
 }
 
-func (c *controller) ScaleUpDeployment(name, namespace string, readinessTimeoutSeconds *int) error {
-	readinessTimeout := config.DeploymentReadinessTimeoutSeconds
-	if readinessTimeoutSeconds != nil {
-		readinessTimeout = *readinessTimeoutSeconds
+func (c *controller) UpdateIsRunningInMemory(id string) error {
+	if c.pubsub != nil {
+		c.pubsub.PublishIsRunning(id, true)
 	}
 
-	return c.cluster.ScaleUpDeployment(name, namespace, readinessTimeout)
+	return c.memory.UpdateIsRunning(id, true)
+}
+
+func (c *controller) ScaleUpDeployment(name, namespace string, readinessTimeoutSeconds int) error {
+	return c.cluster.ScaleUpDeployment(name, namespace, readinessTimeoutSeconds)
 }
 
 func (c *controller) RunDownScaler(checkInterval int) {
@@ -76,30 +80,25 @@ func (c *controller) RunDownScaler(checkInterval int) {
 }
 
 func scaleDownDeployments(c *controller) []error {
-	return c.cluster.ScaleDownDeployments(
-		config.NamespaceScope,
-		func(deployName, namespace string) (bool, time.Duration, error) {
-			route, err := c.memory.GetRouteByDeployment(deployName, namespace)
+	deploymentsToScaleDown := c.memory.GetRoutesToScaleDown()
 
-			if err != nil {
-				logger.Errorf(err, "Could not get route %s.%s from memory", deployName, namespace)
-				return false, 0, err
+	var errs []error
+
+	for _, route := range deploymentsToScaleDown {
+		err := c.cluster.ScaleDownDeployment(route.GetDeployment(), route.GetNamespace())
+
+		if err != nil {
+			errs = append(errs, err)
+		} else {
+			_ = c.memory.UpdateIsRunning(route.GetId(), false)
+
+			if c.pubsub != nil {
+				c.pubsub.PublishIsRunning(route.GetId(), false)
 			}
+		}
+	}
 
-			timeIdle := time.Now().Sub(route.GetLastUsed())
-
-			ttl := config.ServerlessTTLSeconds
-			if route.GetTTLSeconds() != nil {
-				ttl = *route.GetTTLSeconds()
-			}
-
-			// https://stackoverflow.com/a/41503910/5683655
-			if int64(timeIdle/time.Second) >= int64(ttl) {
-				return true, timeIdle, nil
-			}
-
-			return false, timeIdle, nil
-		})
+	return errs
 }
 
 func (c *controller) RunServicesEngine() {
@@ -118,14 +117,15 @@ func (c *controller) RunServicesEngine() {
 		config.ProxlessNamespace,
 		func(
 			id, name, port, deployName, namespace string,
-			domains []string,
+			domains []string, isRunning bool,
 			ttlSeconds, readinessTimeoutSeconds *int) error {
 			if c.pubsub != nil {
-				c.pubsub.Subscribe(id, c.memory.UpdateLastUsed)
+				c.pubsub.SubscribeLastUsed(id, c.memory.UpdateLastUsed)
+				c.pubsub.SubscribeIsRunning(id, c.memory.UpdateIsRunning)
 			}
 
 			route, err :=
-				model.NewRoute(id, name, port, deployName, namespace, domains, ttlSeconds, readinessTimeoutSeconds)
+				model.NewRoute(id, name, port, deployName, namespace, domains, isRunning, ttlSeconds, readinessTimeoutSeconds)
 
 			if err != nil {
 				return err

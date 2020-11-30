@@ -9,7 +9,7 @@ import (
 func upsertMemoryMapHelper(testCases []upsertTestCaseStruct, t *testing.T, s *MemoryMap) {
 	for _, tc := range testCases {
 		route, err := model.NewRoute(
-			tc.id, tc.svc, tc.port, tc.deploy, tc.ns, tc.domains, nil, nil)
+			tc.id, tc.svc, tc.port, tc.deploy, tc.ns, tc.domains, true, nil, nil)
 		assert.NoError(t, err)
 
 		if err == nil {

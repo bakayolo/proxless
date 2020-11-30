@@ -3,8 +3,8 @@ package fake
 import (
 	"errors"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	"kube-proxless/internal/cluster"
 	"kube-proxless/internal/logger"
-	"time"
 )
 
 const (
@@ -20,7 +20,7 @@ var (
 
 type fakeCluster struct{}
 
-func NewCluster() *fakeCluster {
+func NewCluster() cluster.Interface {
 	return &fakeCluster{}
 }
 
@@ -31,26 +31,19 @@ func (*fakeCluster) ScaleUpDeployment(name, namespace string, timeout int) error
 	return nil
 }
 
-func (*fakeCluster) ScaleDownDeployments(
-	namespaceScope string, mustScaleDown func(deployName, namespace string) (bool, time.Duration, error)) []error {
-	_, _, err := mustScaleDown(deployName, namespaceName)
-
-	if err != nil {
-		return append([]error{}, err)
-	}
-
+func (*fakeCluster) ScaleDownDeployment(deploymentName, namespace string) error {
 	return nil
 }
 
 func (*fakeCluster) RunServicesEngine(
 	namespaceScope, proxlessService, proxlessNamespace string,
 	upsertMemory func(
-		id, name, port, deployName, namespace string, domains []string, ttlSeconds, readinessTimeoutSeconds *int) error,
+		id, name, port, deployName, namespace string, domains []string, isRunning bool, ttlSeconds, readinessTimeoutSeconds *int) error,
 	deleteRouteFromMemory func(id string) error,
 ) {
 	if namespaceScope == "upsert" { // TODO this is too hacky, see how others are doing
 		err := upsertMemory(
-			serviceId, serviceName, "", deployName, namespaceName, domains, nil, nil)
+			serviceId, serviceName, "", deployName, namespaceName, domains, true, nil, nil)
 
 		if err != nil {
 			logger.Errorf(err, "Error upserting in fake package")
