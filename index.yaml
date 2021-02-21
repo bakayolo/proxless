@@ -1,0 +1,25 @@
+apiVersion: v1
+entries:
+  proxless:
+  - apiVersion: v1
+    created: "2021-02-21T09:29:19.32012+01:00"
+    dependencies:
+    - condition: redis.enabled
+      name: redis
+      repository: https://kubernetes-charts.storage.googleapis.com
+      version: 10.5.7
+    description: Deploy Proxless using this Helm Chart
+    digest: a6f264410e0ec11471f76aa8af8fd1d166ef94e5e6899cb8905f6a0146332de3
+    keywords:
+    - proxless
+    - serverless
+    - proxy
+    maintainers:
+    - email: benjamin.apprederisse@gmail.com
+      name: Benjamin APPREDERISSE
+      url: https://github.com/bappr
+    name: proxless
+    urls:
+    - https://bappr.github.io/proxless/proxless-0.2.0.tgz
+    version: 0.2.0
+generated: "2021-02-21T09:29:19.311859+01:00"
